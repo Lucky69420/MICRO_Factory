@@ -9,12 +9,12 @@
       "baseline": null,
       "current": {
         "simulation": {
-          "meanMs": 0.033446886666666086,
-          "p95Ms": 0.08757199999999443
+          "meanMs": 0.03039668999999918,
+          "p95Ms": 0.0805909999999983
         },
         "mockRenderCommandCPU": {
-          "meanMs": 0.17266362000000243,
-          "p95Ms": 0.3401920000000018
+          "meanMs": 0.1634857649999975,
+          "p95Ms": 0.26169400000003407
         },
         "mockDrawCommandsPerFrame": 455,
         "graphNodes": 123,
@@ -29,12 +29,12 @@
       "baseline": null,
       "current": {
         "simulation": {
-          "meanMs": 0.14456202000000265,
-          "p95Ms": 0.3940340000000333
+          "meanMs": 0.12636243333333178,
+          "p95Ms": 0.35097799999994095
         },
         "mockRenderCommandCPU": {
-          "meanMs": 1.3690017949999918,
-          "p95Ms": 1.9201110000000199
+          "meanMs": 1.2206614049999973,
+          "p95Ms": 1.459096000000045
         },
         "mockDrawCommandsPerFrame": 3623,
         "graphNodes": 1113,
@@ -49,12 +49,12 @@
       "baseline": null,
       "current": {
         "simulation": {
-          "meanMs": 0.5606342799999955,
-          "p95Ms": 1.6514159999999265
+          "meanMs": 0.5029733999999901,
+          "p95Ms": 1.4522859999999582
         },
         "mockRenderCommandCPU": {
-          "meanMs": 2.8279902699999933,
-          "p95Ms": 3.774953000000096
+          "meanMs": 3.072787185000002,
+          "p95Ms": 5.881706000000122
         },
         "mockDrawCommandsPerFrame": 7172,
         "graphNodes": 5331,

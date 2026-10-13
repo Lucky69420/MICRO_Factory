@@ -25,7 +25,7 @@ g=new Game();const first=place(g,'bender',69,125),second=place(g,'bender',71,125
 // Actual mining -> smelting -> bending -> delivery replenishes construction plates.
 g=new Game();place(g,'miner',69,125);place(g,'smelter',70,125);place(g,'bender',72,122);for(const [x,y,d] of [[72,125,3],[72,124,3],[74,122,1],[74,123,1],[74,124,1]])place(g,'belt',x,y,d);place(g,'miner',69,131,3);for(const [x,y,d] of [[69,130,3],[69,129,3],[69,128,0],[70,128,3],[70,127,3]])place(g,'belt',x,y,d);const starterPlates=g.stock.iron_plate;run(g,180);assert(g.delivered>=50);assert(g.stock.iron_plate>starterPlates);assert.equal(g.stock.iron_ingot,55);conserved(g);
 // Costs have exact multi-resource deductions, invalid placements spend nothing.
-for(const type of ['bender','wiremill','lathe','ammo_factory','turret']){g=new Game();const previous={...g.stock},cost=g.cost(type);place(g,type,20,20);for(const [r,n] of Object.entries(cost))assert.equal(g.stock[r],previous[r]-n);const snapshot={...g.stock};assert(g.place(type,20,20));assert.deepEqual(g.stock,snapshot);conserved(g)}
+for(const type of ['bender','wiremill','lathe','ammo_factory','turret']){g=new Game();const previous={...g.stock},cost=g.cost(type);place(g,type,20,20);for(const [r,n] of Object.entries(cost))assert.equal(g.stock[r],previous[r]-n);const snapshot={...g.stock};assert.equal(g.place(type,20,20),'');assert.deepEqual(g.stock,snapshot);conserved(g)}
 // Losing an in-flight job by demolition is accounted for rather than duplicated.
 g=new Game();b=place(g,'lathe',20,20);input(g,b,'iron_ingot');run(g,1);g.damage(b,150);assert.equal(g.discarded,1);conserved(g);
 for(const r of Object.values(RESOURCES))assert(r.icon&&r.form&&r.group);assert.equal(Object.keys(RECIPES).length,19);
