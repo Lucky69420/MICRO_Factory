@@ -18,6 +18,9 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v6
+      - name: Verify logistics, production and regressions
+        run: |
+          for test in tests/*.cjs; do node "$test" || exit 1; done
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload game

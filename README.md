@@ -1,5 +1,25 @@
-# Micro Factory — Terrain Update
-The existing dependency-free JavaScript / HTML Canvas game, updated with a 20 TPS simulation, cached local logistics graph, 16×16 world chunks and seeded procedural ore deposits. Adds pipelined underground transport, ammunition production and optional factory defense. Factory logistics, production and combat are preserved; the world now has seeded terrain and Mindustry environmental art.
+# Micro Factory — Logistics and Single-Cycle Production
+
+The current logistics update repairs shared transfer validation, enables adjacent routers and junctions, and removes production stockpiles. Existing recipes, construction, terrain, combat and the economy remain available.
+
+- Routers use round robin among compatible outlets, exclude the entry side, skip blocked branches and hold at most one item. All senders reject inward-facing belts.
+- Junctions preserve direction and reserve horizontal/vertical lanes independently. Each blocked lane holds at most one transit item. Adjacent crossings work.
+- Empty router/junction paths resolve atomically in one tick through iterative traversal. Tick-start occupancy and route reservations prevent update-order overwrites and same-tick cycles. Contending sources receive rotating deterministic priority; deliberate closed networks can circulate across ticks.
+- Smelters and processors accept exactly the ingredients of one recipe. A job commits those ingredients, processes once and retains only its remaining completed results until connected outputs accept them. Inputs stay closed until every result leaves. There is no production output inventory.
+- Recipe changes recover uncommitted ingredients into global inventory; existing jobs finish with their original recipe. Inspection shows the active recipe, progress, ingredient requirements and output blockage. Held logistics items are visible in the world.
+- Settings → **Save factory** / **Load saved factory** stores one snapshot in this browser. It restores world seed, buildings, current jobs, transit items, tunnels, truck, stock and combat. Loading a malformed snapshot leaves the running factory untouched. No older release wrote factory saves; the compatibility loader recovers legacy machine stockpiles to global inventory and preserves active work.
+
+Smelters retain their existing 8 ore + 1 coal → 8 ingot, 8-second recipe. Removing ingredient stockpiles means collecting the next cycle begins after the previous results leave, so sustained smelter throughput is lower. Feed coal continuously and let input belts back up naturally.
+
+Run all checks from the repository root:
+
+```sh
+for test in tests/*.cjs; do node "$test" || exit 1; done
+```
+
+`tests/logistics-cycle.cjs` covers router fairness, contention and recovery, all four junction directions, independent blockage, adjacent instant paths, deliberate cycles, all 19 recipes, multiple output units, recipe changes, demolition, creative mode, save/load and legacy recovery, and a 1,000-building conservation stress fixture. Existing terrain, controls, combat, economy, underground throughput and performance tests also pass. Real-browser QA could not run here because the browser executable is unavailable; mocked UI/render checks pass.
+
+The earlier release notes below describe the game's other systems; historical logistics rules are superseded above.
 
 ## Play locally
 Open `dist/index.html` in a modern browser. No install or build step. Optional server: `python3 -m http.server 8000 --directory dist` then visit http://localhost:8000.
@@ -53,7 +73,7 @@ Underground supports straight drag chains of 2–6 tile tunnel pairs and the exi
 
 Building metadata defines category, description, footprint, replacement group and whether rotation is supported. Logistics with matching footprints replace one another. Other classes replace only explicitly compatible groups with exactly matching, aligned footprints. Same-type placement is a free rotation/no-op, preserving contents and HP. Different-type replacements pay the new building's original construction cost and use existing no-refund dismantling rules for old contents. Every replacement validates before changing any building or inventory, and local logistics/pathfinding topology updates immediately.
 
-Iron walls are now available in Defense: 1×1, 200 HP, cost 5 iron ingots. They block enemy movement, can be attacked/destroyed, support continuous drag placement and respect terrain restrictions in Creative Mode. No wall item existed in the previous checked-in source. Other recipes, construction costs, turret settings, trucks, terrain, inventory and inspection remain unchanged. Factories remain session-only; there was no existing save/load format to migrate.
+Iron walls are now available in Defense: 1×1, 200 HP, cost 5 iron ingots. They block enemy movement, can be attacked/destroyed, support continuous drag placement and respect terrain restrictions in Creative Mode. No wall item existed in the previous checked-in source. Other recipes, construction costs, turret settings, trucks, terrain, inventory and inspection remain unchanged. Factories can now be saved and restored from Settings. Previous releases had no factory save format.
 
 ## Processing
 All new processors occupy 2×2, have 150 HP, hold 32 of each input ingredient and 32 outputs, process in two seconds and require no power.
@@ -66,9 +86,9 @@ The existing Smelter still converts 8 ore + 1 coal into 8 corresponding ingots i
 
 ## Logistics
 - Underground: click entrance, then exit 2–6 tile-center steps ahead in the selected direction. Both valid endpoints cost 4 iron ingots together. Only endpoints occupy surface cells. Independent links pass under **everything**, including buildings, roads and perpendicular or parallel underground connections. Surface construction above a link is allowed. Links retain endpoint identity, so crossings never mix resources. Travel takes distance × belt time to reach the exit, which then advances normally. The entrance has normal belt timing; a FIFO pipeline contains up to distance−1 hidden items, in addition to entrance/exit buffers. Several items travel simultaneously. Capacity and exit occupancy enforce backpressure. Removing either endpoint discards all hidden pipeline contents once and disconnects its partner; the surviving endpoint retains its surface-buffered item. Rebuild the pair to reconnect.
-- Junction: strict straight-through crossing with independent horizontal/vertical channels. No direct Junction-to-Junction transfer. Invalid or blocked outputs keep resources upstream; one blocked axis does not stall the other. No facing configuration. Cost: 3 iron ingots.
+- Junction: strict straight-through crossing with independent horizontal/vertical channels. Adjacent junctions work. A blocked lane can hold one transit item; one blocked axis does not stall the other. No facing configuration. Cost: 3 iron ingots.
 - Splitter: rear input, left/right outputs; alternates successful transfers and uses the other side when one is blocked.
-- Router: accepts all resource types from any side. Automatically rotates among compatible, available outputs excluding the input side, with backpressure and no configuration. Direct machine/router connections work through the shared transfer interface. Router-only chains advance by at most one Router-to-Router hop per tick; alternating Router/Junction paths resolve instantly and atomically. Cost: 3 iron ingots. Each item tracks routers visited in its current router/junction network: a visited router rejects that item, so closed cycles hold rather than oscillate indefinitely. Traversing a normal belt or machine starts a fresh route. A cyclic network may require a new outlet or belt to release a trapped item; the algorithm does not search globally for a sink.
+- Router: accepts all resource types from any side. Automatically rotates among compatible, available outputs excluding the input side, with backpressure and no configuration. Direct machine/router connections work through the shared transfer interface. Router-only and mixed Router/Junction chains traverse instantly through empty nodes. A visited set bounds each search; per-tick reservations prevent duplicate traversal. Intentional closed networks circulate across ticks. Cost: 3 iron ingots.
 - All buildings use shared acceptance logic, including direct compatible building-to-building transfers. Receivers accept along their perimeter; 2×2 machine output ports are east (x+2,y), south (x+1,y+2), west (x-1,y+1), north (x,y-1).
 
 ## Economy and extensibility
@@ -105,14 +125,14 @@ Simulation averages improved in this run; large-factory mean time fell about 22%
 ## Validation and limits
 Existing production, all 16 processor recipes, crossing lanes, balanced Routers, Splitters, direct transfers, tunnels under every surface type, mixed/partial truck delivery, construction, HP, safe recipe switching and conservation tests pass. New tests verify identical seed layouts, seed diversity, protected starting terrain, data definitions, 150/256/512 maps, cross-chunk footprints and underground references, local graph invalidation, zero neighbor tile lookups during steady transport, offscreen mining, identical 30/60/144 FPS simulation results, catch-up limits, pause and tab suspension. UI tests cover seed entry/randomization/confirmation/cancel, full state reset, settings preservation, interpolation, debug controls and viewport culling. The procedural world overview was inspected visually. Texture transparency, fallbacks, licenses and existing credits are preserved.
 
-Real-browser layout and GPU/FPS QA are unavailable in this environment; mock UI/render tests do not replace them. Finite map, unlimited deposits, session-only factories, no power, saves or upgrades. Grid preferences persist. Spending all bootstrap materials on a nonproductive factory can require restarting. New worlds start with a random seed; custom seeds regenerate identical worlds under unchanged generation settings. No infinite world generation or distant-chunk simulation suspension is implemented.
+Real-browser layout and GPU/FPS QA are unavailable in this environment; mock UI/render tests do not replace them. Finite map, unlimited deposits, one browser-local factory save, no power or upgrades. Grid preferences persist. Spending all bootstrap materials on a nonproductive factory can require restarting. New worlds start with a random seed; custom seeds regenerate identical worlds under unchanged generation settings. No infinite world generation or distant-chunk simulation suspension is implemented.
 
 ## v0.7 logistics and connected conveyors
-Adjacent Junctions never connect, including aligned channels. Junction acceptance checks its straight output, so invalid/blocked crossings do not pull resources out of upstream belts. Routers remain chainable and keep fair output rotation, input-side exclusion and cycle protection. Direct Router-to-Router edges end the current transfer at the next Router buffer and resume on a later tick.
+Historical v0.7 behavior (superseded by the current logistics update): adjacent Junctions never connected, including aligned channels. Junction acceptance checks its straight output, so invalid/blocked crossings do not pull resources out of upstream belts. Routers remain chainable and keep fair output rotation, input-side exclusion and cycle protection. Direct Router-to-Router edges end the current transfer at the next Router buffer and resume on a later tick.
 
 Alternating Router/Junction sequences use iterative, cycle-safe logical traversal with visited node/entry states. No fixed chain-length limit or recursion. Only a successful terminal acceptance removes the original source item; intermediate nodes never hold temporary resources. Failed routes leave source items intact and let Routers try another output. Machine processing is unchanged; v0.8 preserves underground latency while replacing its single-item entrance bottleneck. A 4,001-node alternating chain is tested. Instant capacities are reserved per channel/tick to prevent competing transfers from overwriting resources.
 
-Router and Junction resource sprites are deliberately hidden in the world. Their items remain in simulation and inspection. Icons reappear on visible destination belts rather than animating or flickering through an instant chain.
+Historical v0.7 rendering hid Router and Junction resource sprites; current rendering shows held items and separates crossing lanes. Their items remain in simulation and inspection. Icons reappear on visible destination belts rather than animating or flickering through an instant chain.
 
 Ordinary belts use 64 cached full-tile SVG connection variants, derived from actual structural input/output compatibility. Shapes and masks refresh locally after placement, rotation and demolition; rendering performs no neighbor scans. Straight, endpoint, branched and all corner variants share boundary-aligned lanes. Fractional zoom snaps adjacent sprite edges to the same pixel boundary to avoid seams. Curve artwork and item movement use matching quarter-circle paths. Geometry samples are shared by rendering and simulation; curve duration scales with arc length so linear item speed stays consistent. The previous 0.55-second straight-belt duration is preserved.
 
@@ -153,7 +173,7 @@ Original Mindustry PNGs are pinned to commit `17012d61d9e4c3cbd9820d87e81c244954
 
 Validation: `node tests/terrain.cjs` covers 105 seeds, deterministic 64/150/256/512 maps, wide access, roads, starting ores/sand, borders, multi-tile and Creative Mode restrictions, mining and sand logistics, actual enemy lake detours, construction-triggered replanning, adversarial passage repair and UI/cache integration. Existing fixed-coordinate regression fixtures explicitly use `terrain:false` to isolate their original logistics/production/combat scenarios; the terrain suite uses actual generated maps. All prior regression suites pass. Native Canvas renders of the complete terrain overview and the actual game renderer were visually inspected. Browser GPU/FPS measurements remain unavailable. Current Node benchmark results are in `tests/benchmark-results.json`; they measure simulation and mocked render command preparation, not browser frame rate.
 
-Worlds remain session-only; there is no existing save format to migrate. `new Game({terrain:false})` provides a flat-world compatibility option for tools and fixed-coordinate fixtures. Optional lava is deferred.
+Settings now provides Save factory and Load saved factory. `new Game({terrain:false})` provides a flat-world compatibility option for tools and fixed-coordinate fixtures. Optional lava is deferred.
 
 ## Play online
 https://Lucky69420.github.io/MICRO_Factory/

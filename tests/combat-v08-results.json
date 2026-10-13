@@ -2,7 +2,7 @@
   "turrets": 100,
   "enemies": 30,
   "measuredTicks": 400,
-  "meanMs": 0.12908481500000193,
-  "p95Ms": 0.2808619999999564,
+  "meanMs": 0.08580823750000292,
+  "p95Ms": 0.22667200000000776,
   "maxPathNodesPerTick": 2000
 }
