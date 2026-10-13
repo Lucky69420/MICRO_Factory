@@ -1,0 +1,26 @@
+{
+  "repository": "https://github.com/Anuken/Mindustry",
+  "commit": "17012d61d9e4c3cbd9820d87e81c24495486ac53",
+  "license": "GPL-3.0",
+  "sourcePaths": [
+    "core/assets-raw/sprites/blocks/environment/ore-copper1.png",
+    "core/assets-raw/sprites/blocks/environment/ore-copper2.png",
+    "core/assets-raw/sprites/blocks/environment/ore-copper3.png",
+    "core/assets-raw/sprites/blocks/environment/ore-coal1.png",
+    "core/assets-raw/sprites/blocks/environment/ore-coal2.png",
+    "core/assets-raw/sprites/blocks/environment/ore-coal3.png",
+    "core/assets-raw/sprites/blocks/environment/ore-scrap1.png",
+    "core/assets-raw/sprites/blocks/environment/ore-scrap2.png",
+    "core/assets-raw/sprites/blocks/environment/ore-scrap3.png",
+    "core/assets-raw/sprites/blocks/environment/ore-lead1.png",
+    "core/assets-raw/sprites/blocks/environment/ore-lead2.png",
+    "core/assets-raw/sprites/blocks/environment/ore-lead3.png"
+  ],
+  "mapping": {
+    "iron": "scrap recolored rust brown",
+    "copper": "copper unchanged",
+    "tin": "lead recolored silver blue",
+    "coal": "coal unchanged"
+  },
+  "variants": 3
+}
