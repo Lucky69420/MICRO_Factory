@@ -1,0 +1,101 @@
+{
+  "method": "Node simulation CPU, same fixtures and 50ms simulation steps in both versions. 40 warmup + 300 measured ticks. Rendering CPU is command preparation using a mock Canvas, NOT browser raster/GPU/FPS. 30 warmup + 200 render calls, 1000x700 viewport at 36px/tile.",
+  "scenarios": [
+    {
+      "name": "small",
+      "belts": 100,
+      "machines": 15,
+      "initialMovingItems": 50,
+      "baseline": {
+        "simulation": {
+          "meanMs": 0.03588592999999998,
+          "p95Ms": 0.11697600000000818
+        },
+        "mockRenderCommandCPU": {
+          "meanMs": 0.16237131,
+          "p95Ms": 0.26433900000000676
+        },
+        "mockDrawCommandsPerFrame": 621,
+        "graphNodes": null,
+        "chunkCount": null
+      },
+      "current": {
+        "simulation": {
+          "meanMs": 0.01581588000000063,
+          "p95Ms": 0.04570899999998801
+        },
+        "mockRenderCommandCPU": {
+          "meanMs": 0.1560758500000003,
+          "p95Ms": 0.27056799999999726
+        },
+        "mockDrawCommandsPerFrame": 602,
+        "graphNodes": 123,
+        "chunkCount": 72
+      }
+    },
+    {
+      "name": "medium",
+      "belts": 1000,
+      "machines": 75,
+      "initialMovingItems": 500,
+      "baseline": {
+        "simulation": {
+          "meanMs": 0.17783616999999993,
+          "p95Ms": 0.3926319999999919
+        },
+        "mockRenderCommandCPU": {
+          "meanMs": 0.9128645799999998,
+          "p95Ms": 1.204368000000045
+        },
+        "mockDrawCommandsPerFrame": 4816,
+        "graphNodes": null,
+        "chunkCount": null
+      },
+      "current": {
+        "simulation": {
+          "meanMs": 0.11721994999999955,
+          "p95Ms": 0.26000199999998586
+        },
+        "mockRenderCommandCPU": {
+          "meanMs": 0.9235549900000006,
+          "p95Ms": 1.2130799999999908
+        },
+        "mockDrawCommandsPerFrame": 4779,
+        "graphNodes": 1113,
+        "chunkCount": 73
+      }
+    },
+    {
+      "name": "large",
+      "belts": 5000,
+      "machines": 220,
+      "initialMovingItems": 2000,
+      "baseline": {
+        "simulation": {
+          "meanMs": 0.567906816666665,
+          "p95Ms": 0.9366730000000416
+        },
+        "mockRenderCommandCPU": {
+          "meanMs": 1.651527885000004,
+          "p95Ms": 1.9289409999998952
+        },
+        "mockDrawCommandsPerFrame": 9466,
+        "graphNodes": null,
+        "chunkCount": null
+      },
+      "current": {
+        "simulation": {
+          "meanMs": 0.4423028966666652,
+          "p95Ms": 1.4344049999999697
+        },
+        "mockRenderCommandCPU": {
+          "meanMs": 1.9625039150000032,
+          "p95Ms": 2.353162000000111
+        },
+        "mockDrawCommandsPerFrame": 9489,
+        "graphNodes": 5331,
+        "chunkCount": 81
+      }
+    }
+  ]
+}

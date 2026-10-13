@@ -1,0 +1,27 @@
+{
+  "normal": {
+    "total": 97,
+    "sustained": 83,
+    "maxPipeline": 0
+  },
+  "one": {
+    "total": 97,
+    "sustained": 83,
+    "maxPipeline": 5
+  },
+  "multiple": {
+    "total": 97,
+    "sustained": 83,
+    "maxPipeline": 5
+  },
+  "consecutive": {
+    "total": 97,
+    "sustained": 83,
+    "maxPipeline": 5
+  },
+  "underBuildingsCrossings": {
+    "total": 97,
+    "sustained": 83,
+    "maxPipeline": 5
+  }
+}

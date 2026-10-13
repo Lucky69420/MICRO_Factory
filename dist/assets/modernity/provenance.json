@@ -1,0 +1,206 @@
+{
+  "repository": "https://github.com/ModernityGTNH/Modernity-GTNH",
+  "commit": "1b52340349b92a11676eefb149eaec3b934eafcf",
+  "license": "CC BY-NC-SA 4.0 (current pack license); retained upstream MIT notice",
+  "transform": "Multiply the actual METALLIC base texture by metal RGB; composite the original untinted overlay; preserve 16x16 RGBA pixels. No resampling.",
+  "assets": {
+    "iron_ingot": {
+      "file": "iron_ingot.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/ingot.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/ingot_OVERLAY.png",
+      "tint": [
+        190,
+        200,
+        210
+      ],
+      "sha256": "6411c70da8ef09bcf89c261900f38bd1c71fad6c0ac82970933492e904e47be4"
+    },
+    "iron_plate": {
+      "file": "iron_plate.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/plate.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/plate_OVERLAY.png",
+      "tint": [
+        190,
+        200,
+        210
+      ],
+      "sha256": "38ee85c6dee6d88a26d4736e46b6f9131bb8bb920f7246428d03953ce2e7e30c"
+    },
+    "iron_foil": {
+      "file": "iron_foil.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/foil.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/foil_OVERLAY.png",
+      "tint": [
+        190,
+        200,
+        210
+      ],
+      "sha256": "1e2050d9ded66c0ad73040fcedaf48a1f23566799ef078a9ffcddef6378449f9"
+    },
+    "iron_wire": {
+      "file": "iron_wire.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/wireFine.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/wireFine_OVERLAY.png",
+      "tint": [
+        190,
+        200,
+        210
+      ],
+      "sha256": "7e7e0e42ce3850940887e9050fe0d0c725349c7aa9a5bd4c96acea20b4ad5d00"
+    },
+    "iron_rod": {
+      "file": "iron_rod.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/stick.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/stick_OVERLAY.png",
+      "tint": [
+        190,
+        200,
+        210
+      ],
+      "sha256": "6a1eb598a7642a270dd155333f016740b69e78507a53c04e15a4c753f69e728f"
+    },
+    "iron_screw": {
+      "file": "iron_screw.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/screw.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/screw_OVERLAY.png",
+      "tint": [
+        190,
+        200,
+        210
+      ],
+      "sha256": "c3f3a3834750fb99d78ec8278ecc89d7932f1a47bef305731eec97fd457525d8"
+    },
+    "copper_ingot": {
+      "file": "copper_ingot.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/ingot.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/ingot_OVERLAY.png",
+      "tint": [
+        245,
+        154,
+        91
+      ],
+      "sha256": "e5f5a5eafd3f74472a8b163e1514d9b0db69b9749cafcac397e86dfb6ccd487c"
+    },
+    "copper_plate": {
+      "file": "copper_plate.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/plate.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/plate_OVERLAY.png",
+      "tint": [
+        245,
+        154,
+        91
+      ],
+      "sha256": "514d4ba35403cebee0d895264b4789d9411c75331cd480641e1af8d5a4781abd"
+    },
+    "copper_foil": {
+      "file": "copper_foil.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/foil.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/foil_OVERLAY.png",
+      "tint": [
+        245,
+        154,
+        91
+      ],
+      "sha256": "48a9cac418aaebebe1a8d24cdde63d390f63e175ed08cdfb1597c16c8fcc9cf1"
+    },
+    "copper_wire": {
+      "file": "copper_wire.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/wireFine.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/wireFine_OVERLAY.png",
+      "tint": [
+        245,
+        154,
+        91
+      ],
+      "sha256": "4ad87e9726e8b0dd21f11b4927ccf2f4e9b9d743616e5c7a73ef198199c48248"
+    },
+    "copper_rod": {
+      "file": "copper_rod.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/stick.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/stick_OVERLAY.png",
+      "tint": [
+        245,
+        154,
+        91
+      ],
+      "sha256": "130f161d2e3606dec4c17baf04ae029a551013aa46b4f217a6c394b707a5f55d"
+    },
+    "copper_screw": {
+      "file": "copper_screw.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/screw.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/screw_OVERLAY.png",
+      "tint": [
+        245,
+        154,
+        91
+      ],
+      "sha256": "4e90ba068f6ed5156e9966493c938f6472542466e6e7e8d205af68b8ed0d07db"
+    },
+    "tin_ingot": {
+      "file": "tin_ingot.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/ingot.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/ingot_OVERLAY.png",
+      "tint": [
+        218,
+        231,
+        235
+      ],
+      "sha256": "299af429d6e07335cbfa2602f5132559abf99d72697653d7d060d94db0bc8d96"
+    },
+    "tin_plate": {
+      "file": "tin_plate.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/plate.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/plate_OVERLAY.png",
+      "tint": [
+        218,
+        231,
+        235
+      ],
+      "sha256": "d8d93960e7db434638a6f0b4254e1231c65712de964904c470a12495ae4d5ffe"
+    },
+    "tin_foil": {
+      "file": "tin_foil.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/foil.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/foil_OVERLAY.png",
+      "tint": [
+        218,
+        231,
+        235
+      ],
+      "sha256": "a7043936a022f29604e1ee17892ff9530fdf6f78afe71e382b72f86fe37fedea"
+    },
+    "tin_wire": {
+      "file": "tin_wire.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/wireFine.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/wireFine_OVERLAY.png",
+      "tint": [
+        218,
+        231,
+        235
+      ],
+      "sha256": "e6580d41bec2ee8df4346dd0a8bed319fff1f1bce9ea5f53b52fa2e3ce628032"
+    },
+    "tin_rod": {
+      "file": "tin_rod.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/stick.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/stick_OVERLAY.png",
+      "tint": [
+        218,
+        231,
+        235
+      ],
+      "sha256": "d3180046d3c7f077613b4ae642e6b58fcf747b65acec80832f84d379667a3b16"
+    },
+    "tin_screw": {
+      "file": "tin_screw.png",
+      "source_base": "assets/gregtech/textures/items/materialicons/METALLIC/screw.png",
+      "source_overlay": "assets/gregtech/textures/items/materialicons/METALLIC/screw_OVERLAY.png",
+      "tint": [
+        218,
+        231,
+        235
+      ],
+      "sha256": "8953dedf8ba2f598c7c74c8f41952fef1b40a6be1bd65628401f7d0669d25d95"
+    }
+  }
+}

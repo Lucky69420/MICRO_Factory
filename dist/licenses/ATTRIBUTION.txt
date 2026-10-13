@@ -1,0 +1,10 @@
+Resource textures from Modernity-GTNH
+https://github.com/ModernityGTNH/Modernity-GTNH
+Snapshot: 1b52340349b92a11676eefb149eaec3b934eafcf
+
+Selected GregTech METALLIC ingot, plate, foil, wireFine, stick and screw base/overlay PNGs. Pack attribution credits GregTech: Refreshed (ULSTICK) for most original GregTech textures; its MIT copyright/license notice is included.
+https://github.com/ULSTICK/GregTechRefreshed
+
+The selected Modernity-GTNH snapshot is licensed CC BY-NC-SA 4.0, not MIT. These adapted/tinted PNG assets are distributed under CC BY-NC-SA 4.0. Attribution, noncommercial use and share-alike terms apply to them. Original source PNGs, full license texts and transformation details are included. No assets from separately permission-only or other licensed packs were intentionally selected.
+
+Modifications: material RGB tinting of base grayscale pixels; original overlay composited unmodified; 16x16 alpha retained. Existing raw-resource SVGs and building sprites are Micro Factory original artwork.

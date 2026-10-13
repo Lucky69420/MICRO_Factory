@@ -1,0 +1,65 @@
+{
+  "method": "Node simulation CPU, same fixtures and 50ms simulation steps in both versions. 40 warmup + 300 measured ticks. Rendering CPU is command preparation using a mock Canvas, NOT browser raster/GPU/FPS. 30 warmup + 200 render calls, 1000x700 viewport at 36px/tile.",
+  "scenarios": [
+    {
+      "name": "small",
+      "belts": 100,
+      "machines": 15,
+      "initialMovingItems": 50,
+      "baseline": null,
+      "current": {
+        "simulation": {
+          "meanMs": 0.030376653333332795,
+          "p95Ms": 0.0862769999999955
+        },
+        "mockRenderCommandCPU": {
+          "meanMs": 0.17927424499999944,
+          "p95Ms": 0.30995699999999715
+        },
+        "mockDrawCommandsPerFrame": 490,
+        "graphNodes": 123,
+        "chunkCount": 73
+      }
+    },
+    {
+      "name": "medium",
+      "belts": 1000,
+      "machines": 75,
+      "initialMovingItems": 500,
+      "baseline": null,
+      "current": {
+        "simulation": {
+          "meanMs": 0.1278037500000007,
+          "p95Ms": 0.3646169999999813
+        },
+        "mockRenderCommandCPU": {
+          "meanMs": 1.4598890599999996,
+          "p95Ms": 2.249023999999963
+        },
+        "mockDrawCommandsPerFrame": 3659,
+        "graphNodes": 1113,
+        "chunkCount": 74
+      }
+    },
+    {
+      "name": "large",
+      "belts": 5000,
+      "machines": 220,
+      "initialMovingItems": 2000,
+      "baseline": null,
+      "current": {
+        "simulation": {
+          "meanMs": 1.0747396466666592,
+          "p95Ms": 3.521569999999997
+        },
+        "mockRenderCommandCPU": {
+          "meanMs": 3.0657813350000094,
+          "p95Ms": 4.295409999999947
+        },
+        "mockDrawCommandsPerFrame": 7249,
+        "graphNodes": 5331,
+        "chunkCount": 82
+      }
+    }
+  ]
+}
