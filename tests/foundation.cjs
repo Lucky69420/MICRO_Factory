@@ -1,4 +1,4 @@
-const assert=require('node:assert/strict'),{Game,CONFIG,FixedClock,BUILDINGS,RECIPES,START_INVENTORY}=require('../dist/simulation.js');
+const assert=require('node:assert/strict'),{Game,CONFIG,FixedClock,BUILDINGS,RECIPES,START_INVENTORY}=require('./flat-fixture.cjs');
 const run=(g,t)=>{for(let i=0;i<Math.round(t/CONFIG.step);i++)g.tick(CONFIG.step)};const total=o=>Object.values(o).reduce((a,b)=>a+b,0);const conserved=g=>assert.equal(total(START_INVENTORY)+g.produced+g.convertedGain,total(g.stock)+g.spent+g.inventory()+g.fuelConsumed+g.discarded);
 function p(g,t,x,y,d=0){assert.equal(g.place(t,x,y,d),'');return g.grid.get(x,y)}
 function depositSnapshot(g){return [...g.deposits].sort((a,b)=>a[0]-b[0])}

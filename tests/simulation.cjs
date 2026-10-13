@@ -1,4 +1,4 @@
-const assert=require('node:assert/strict');const {Game,CONFIG,START_INVENTORY,RESOURCES,counts}=require('../dist/simulation.js');
+const assert=require('node:assert/strict');const {Game,CONFIG,START_INVENTORY,RESOURCES,counts}=require('./flat-fixture.cjs');
 const run=(g,seconds)=>{for(let i=0;i<Math.round(seconds/CONFIG.step);i++)g.tick(CONFIG.step)};
 const total=o=>Object.values(o).reduce((a,b)=>a+b,0);
 const conserved=g=>assert.equal(total(START_INVENTORY)+g.produced+g.convertedGain,total(g.stock)+g.spent+g.inventory()+g.fuelConsumed+g.discarded);

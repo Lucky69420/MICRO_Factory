@@ -1,4 +1,4 @@
-const assert=require('node:assert/strict'),{Game,CONFIG,START_INVENTORY}=require('../dist/simulation.js'),{boot}=require('./ui.cjs');
+const assert=require('node:assert/strict'),{Game,CONFIG,START_INVENTORY}=require('./flat-fixture.cjs'),{boot}=require('./ui.cjs');
 const put=(g,b,type,from)=>{assert(g.accept(b,type,from));g.produced++};const p=(g,t,x,y,d=0)=>{assert.equal(g.place(t,x,y,d),'');return g.grid.get(x,y)};const sum=o=>Object.values(o).reduce((a,b)=>a+b,0);const conserved=g=>assert.equal(sum(START_INVENTORY)+g.produced+g.convertedGain,sum(g.stock)+g.spent+g.inventory()+g.fuelConsumed+g.discarded);
 // Both crossing lanes traverse several junctions within a single update.
 let g=new Game();const j=p(g,'junction',10,10);p(g,'router',11,10);p(g,'junction',12,10);p(g,'router',13,10);const east=p(g,'belt',14,10),south=p(g,'belt',10,11,1);put(g,j,'coal',[9,10]);put(g,j,'iron',[10,9]);g.tick(CONFIG.step);assert.equal(east.item.type,'coal');assert.equal(south.item.type,'iron');assert.equal(g.inventory(),2);conserved(g);

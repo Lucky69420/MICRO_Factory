@@ -13,3 +13,5 @@ Mindustry ore artwork — Anuken and contributors
 Source: https://github.com/Anuken/Mindustry/tree/17012d61d9e4c3cbd9820d87e81c24495486ac53/core/assets-raw/sprites/blocks/environment
 License: GPL-3.0; see Mindustry-GPL-3.0.txt. Original source PNGs included under assets/mindustry/source.
 Copper and coal are unchanged. Iron uses rust-brown recolored scrap; tin uses silver-blue recolored lead. Three variants each; resolution and alpha preserved. No Mindustry game code imported.
+
+Mindustry terrain and sand item artwork: original grass, sand-floor, darksand, stone, dune-wall, stone-wall, shallow/deep-water and item-sand PNGs, same pinned upstream commit and GPL-3.0 license as the ores. Originals unchanged; runtime shading and procedural edge masks applied for terrain transitions. See assets/mindustry/provenance.json.

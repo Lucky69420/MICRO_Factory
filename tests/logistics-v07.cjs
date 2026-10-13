@@ -1,4 +1,4 @@
-const assert=require('node:assert/strict'),{Game,CONFIG,START_INVENTORY}=require('../dist/simulation.js'),{paths,sample}=require('../dist/belt-geometry.js');
+const assert=require('node:assert/strict'),{Game,CONFIG,START_INVENTORY}=require('./flat-fixture.cjs'),{paths,sample}=require('../dist/belt-geometry.js');
 const p=(g,t,x,y,d=0)=>{assert.equal(g.place(t,x,y,d),'');return g.grid.get(x,y)};const put=(g,b,t,from)=>{assert(g.accept(b,t,from));g.produced++};const run=(g,t)=>{for(let i=0;i<Math.round(t/CONFIG.step);i++)g.tick()};const sum=o=>Object.values(o).reduce((a,b)=>a+b,0),check=g=>assert.equal(sum(START_INVENTORY)+g.produced+g.convertedGain,sum(g.stock)+g.spent+g.inventory()+g.fuelConsumed+g.discarded);
 // A directly adjacent crossing is disconnected and prevents upstream entry.
 let g=new Game({creative:true});const inbelt=p(g,'belt',9,10),j=p(g,'junction',10,10);p(g,'junction',11,10);p(g,'belt',12,10);put(g,inbelt,'coal',[8,10]);run(g,2);assert.equal(inbelt.item.type,'coal');assert.equal(j.channels.horizontal,null);assert(!g.canAccept(j,'coal',[11,10],g.grid.get(11,10)));check(g);

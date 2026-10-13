@@ -22,5 +22,35 @@
     "tin": "lead recolored silver blue",
     "coal": "coal unchanged"
   },
-  "variants": 3
+  "variants": 3,
+  "terrainSourcePaths": [
+    "core/assets-raw/sprites/blocks/environment/grass1.png",
+    "core/assets-raw/sprites/blocks/environment/grass2.png",
+    "core/assets-raw/sprites/blocks/environment/grass3.png",
+    "core/assets-raw/sprites/blocks/environment/sand-floor1.png",
+    "core/assets-raw/sprites/blocks/environment/sand-floor2.png",
+    "core/assets-raw/sprites/blocks/environment/sand-floor3.png",
+    "core/assets-raw/sprites/blocks/environment/darksand1.png",
+    "core/assets-raw/sprites/blocks/environment/darksand2.png",
+    "core/assets-raw/sprites/blocks/environment/darksand3.png",
+    "core/assets-raw/sprites/blocks/environment/stone1.png",
+    "core/assets-raw/sprites/blocks/environment/stone2.png",
+    "core/assets-raw/sprites/blocks/environment/stone3.png",
+    "core/assets-raw/sprites/blocks/environment/dune-wall1.png",
+    "core/assets-raw/sprites/blocks/environment/dune-wall2.png",
+    "core/assets-raw/sprites/blocks/environment/stone-wall1.png",
+    "core/assets-raw/sprites/blocks/environment/stone-wall2.png",
+    "core/assets-raw/sprites/blocks/environment/shallow-water.png",
+    "core/assets-raw/sprites/blocks/environment/deep-water.png",
+    "core/assets-raw/sprites/blocks/environment/sand-water.png",
+    "core/assets-raw/sprites/items/item-sand.png",
+    "core/assets-raw/sprites/blocks/environment/shale1.png",
+    "core/assets-raw/sprites/blocks/environment/shale2.png",
+    "core/assets-raw/sprites/blocks/environment/shale3.png",
+    "core/assets-raw/sprites/blocks/environment/stone-wall-large.png",
+    "core/assets-raw/sprites/blocks/environment/dacite-wall-large.png",
+    "core/assets-raw/sprites/blocks/environment/carbon-wall-large.png",
+    "core/assets-raw/sprites/blocks/environment/dune-wall-large.png"
+  ],
+  "terrainModifications": "Original PNGs unchanged. Hill/mountain variants shaded at render time; procedural transition masks blend terrain edges."
 }
