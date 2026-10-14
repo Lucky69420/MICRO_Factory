@@ -1,34 +1,261 @@
-const assert=require('node:assert/strict');const {Game,CONFIG,START_INVENTORY,RESOURCES,counts}=require('./flat-fixture.cjs');
-const run=(g,seconds)=>{for(let i=0;i<Math.round(seconds/CONFIG.step);i++)g.tick(CONFIG.step)};
-const total=o=>Object.values(o).reduce((a,b)=>a+b,0);
-const conserved=g=>assert.equal(total(START_INVENTORY)+g.produced+g.convertedGain,total(g.stock)+g.spent+g.inventory()+g.fuelConsumed+g.discarded);
-const place=(g,t,x,y,d=0)=>{assert.equal(g.place(t,x,y,d),'');return g.grid.get(x,y)};
-const inject=(g,b,r)=>{assert.equal(b.item,null);b.item={type:r,progress:1,from:[0,0]};g.produced++};
+const assert = require("node:assert/strict");
+const {
+  Game,
+  CONFIG,
+  START_INVENTORY,
+  _RESOURCES,
+  counts,
+} = require("./flat-fixture.cjs");
+const run = (g, seconds) => {
+  for (let i = 0; i < Math.round(seconds / CONFIG.step); i++)
+    g.tick(CONFIG.step);
+};
+const total = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+const conserved = (g) =>
+  assert.equal(
+    total(START_INVENTORY) + g.produced + g.convertedGain,
+    total(g.stock) + g.spent + g.inventory() + g.fuelConsumed + g.discarded,
+  );
+const place = (g, t, x, y, d = 0) => {
+  assert.equal(g.place(t, x, y, d), "");
+  return g.grid.get(x, y);
+};
+const inject = (g, b, r) => {
+  assert.equal(b.item, null);
+  b.item = { type: r, progress: 1, from: [0, 0] };
+  g.produced++;
+};
 // Economy, footprints and map generation.
-let g=new Game();assert.equal(g.config.width,150);assert.equal(g.config.height,150);assert.equal(g.money,undefined);assert.equal(new Set([g.grid.get(73,125),g.grid.get(75,127)]).size,1);const before={...g.stock};assert(g.place('miner',72,124));assert.deepEqual(g.stock,before);const miner=place(g,'miner',69,125);assert.equal(g.stock.iron_ingot,90);assert(g.place('smelter',72,124));assert(g.place('belt',74,130));assert(g.place('demolish',74,126));g.stock.iron_ingot=0;assert(g.place('belt',1,1).includes('Missing: 1 Iron ingot'));assert(g.missing('smelter').length);
+let g = new Game();
+assert.equal(g.config.width, 150);
+assert.equal(g.config.height, 150);
+assert.equal(g.money, undefined);
+assert.equal(new Set([g.grid.get(73, 125), g.grid.get(75, 127)]).size, 1);
+const before = { ...g.stock };
+assert(g.place("miner", 72, 124));
+assert.deepEqual(g.stock, before);
+const _miner = place(g, "miner", 69, 125);
+assert.equal(g.stock.iron_ingot, 90);
+assert(g.place("smelter", 72, 124));
+assert(g.place("belt", 74, 130));
+assert(g.place("demolish", 74, 126));
+g.stock.iron_ingot = 0;
+assert(g.place("belt", 1, 1).includes("Missing: 1 Iron ingot"));
+assert(g.missing("smelter").length);
 // Basic pipeline + truck inventory rather than payment.
-g=new Game();place(g,'miner',69,125);for(let x=70;x<73;x++)place(g,'belt',x,125);const construction={...g.stock};run(g,30);assert.deepEqual(g.stock,construction);assert(g.truck.cargo.length>0);conserved(g);run(g,150);assert(g.delivered>=50);assert.equal(g.stock.iron, g.delivered);conserved(g);
+g = new Game();
+place(g, "miner", 69, 125);
+for (let x = 70; x < 73; x++) place(g, "belt", x, 125);
+const construction = { ...g.stock };
+run(g, 30);
+assert.deepEqual(g.stock, construction);
+assert(g.truck.cargo.length > 0);
+conserved(g);
+run(g, 150);
+assert(g.delivered >= 50);
+assert.equal(g.stock.iron, g.delivered);
+conserved(g);
 // Miner buffer / blocked belt resumes without loss.
-g=new Game();place(g,'miner',69,125);const belt=place(g,'belt',70,125);run(g,60);assert.equal(g.produced,2);assert.equal(g.inventory(),2);conserved(g);place(g,'belt',71,125);place(g,'belt',72,125);run(g,20);assert(g.truck.cargo.length>1);conserved(g);
+g = new Game();
+place(g, "miner", 69, 125);
+const _belt = place(g, "belt", 70, 125);
+run(g, 60);
+assert.equal(g.produced, 2);
+assert.equal(g.inventory(), 2);
+conserved(g);
+place(g, "belt", 71, 125);
+place(g, "belt", 72, 125);
+run(g, 20);
+assert(g.truck.cargo.length > 1);
+conserved(g);
 // Two independent crossing lines. Tunnel carries iron east; coal travels south above.
-g=new Game();assert.equal(g.placePair(10,10,14,10,0),'');const entry=g.grid.get(10,10),exit=g.grid.get(14,10);assert.equal(g.stock.iron_ingot,96);place(g,'belt',15,10);const surface=place(g,'belt',12,10,1),down=place(g,'belt',12,11,1);inject(g,entry,'iron');inject(g,surface,'coal');run(g,3);assert.equal(g.grid.get(15,10).item.type,'iron');assert.equal(down.item.type,'coal');conserved(g);g.place('demolish',12,10);assert.equal(g.place('smelter',11,9),'');g.deposits.set(g.grid.key(11,10),'iron');g.place('demolish',11,9);assert.equal(g.place('miner',11,10),'');
+g = new Game();
+assert.equal(g.placePair(10, 10, 14, 10, 0), "");
+const entry = g.grid.get(10, 10),
+  exit = g.grid.get(14, 10);
+assert.equal(g.stock.iron_ingot, 96);
+place(g, "belt", 15, 10);
+const surface = place(g, "belt", 12, 10, 1),
+  down = place(g, "belt", 12, 11, 1);
+inject(g, entry, "iron");
+inject(g, surface, "coal");
+run(g, 3);
+assert.equal(g.grid.get(15, 10).item.type, "iron");
+assert.equal(down.item.type, "coal");
+conserved(g);
+g.place("demolish", 12, 10);
+assert.equal(g.place("smelter", 11, 9), "");
+g.deposits.set(g.grid.key(11, 10), "iron");
+g.place("demolish", 11, 9);
+assert.equal(g.place("miner", 11, 10), "");
 // Blocked underground exit retains both resources; invalid pairs spend nothing.
-const stock={...g.stock};assert(g.placePair(40,40,48,40,0));assert.deepEqual(g.stock,stock);place(g,'smelter',41,40);assert.equal(g.placePair(40,40,44,40,0),'');inject(g,entry,'tin');inject(g,exit,'copper');run(g,3);assert.equal(entry.connection.pipeline[0].item.type,'tin');assert.equal(g.grid.get(15,10).item.type,'iron');conserved(g);g.place('demolish',14,10);assert.equal(entry.link,null);run(g,5);assert.equal(entry.item,null);assert.equal(entry.connection,null);conserved(g);
+const stock = { ...g.stock };
+assert(g.placePair(40, 40, 48, 40, 0));
+assert.deepEqual(g.stock, stock);
+place(g, "smelter", 41, 40);
+assert.equal(g.placePair(40, 40, 44, 40, 0), "");
+inject(g, entry, "tin");
+inject(g, exit, "copper");
+run(g, 3);
+assert.equal(entry.connection.pipeline[0].item.type, "tin");
+assert.equal(g.grid.get(15, 10).item.type, "iron");
+conserved(g);
+g.place("demolish", 14, 10);
+assert.equal(entry.link, null);
+run(g, 5);
+assert.equal(entry.item, null);
+assert.equal(entry.connection, null);
+conserved(g);
 // Split alternates, falls back on blocked side and waits if both blocked.
-g=new Game();const split=place(g,'splitter',10,10),north=place(g,'belt',10,9,3),south=place(g,'belt',10,11,1);assert(!g.accept(split,'coal',[10,9]));assert(g.accept(split,'coal',[9,10]));g.produced++;run(g,.7);assert.equal(north.item.type,'coal');inject(g,split,'iron');run(g,.7);assert.equal(south.item.type,'iron');inject(g,split,'tin');run(g,2);assert.equal(split.item.type,'tin');conserved(g);north.item=null;g.discarded++;run(g,.1);assert.equal(north.item.type,'tin');assert.equal(split.item,null);conserved(g);
+g = new Game();
+const split = place(g, "splitter", 10, 10),
+  north = place(g, "belt", 10, 9, 3),
+  south = place(g, "belt", 10, 11, 1);
+assert(!g.accept(split, "coal", [10, 9]));
+assert(g.accept(split, "coal", [9, 10]));
+g.produced++;
+run(g, 0.7);
+assert.equal(north.item.type, "coal");
+inject(g, split, "iron");
+run(g, 0.7);
+assert.equal(south.item.type, "iron");
+inject(g, split, "tin");
+run(g, 2);
+assert.equal(split.item.type, "tin");
+conserved(g);
+north.item = null;
+g.discarded++;
+run(g, 0.1);
+assert.equal(north.item.type, "tin");
+assert.equal(split.item, null);
+conserved(g);
 // Direct Miner -> Smelter; no belt required, incompatible resources remain buffered.
-g=new Game();const mine=place(g,'miner',69,125);const sm=place(g,'smelter',70,125);run(g,20);assert(sm.ore.length>=8);assert.equal(g.inspect(sm).status,'Waiting for Ingredients');assert.equal(g.inspect(mine).details.Resource,'Iron ore');conserved(g);
+g = new Game();
+const mine = place(g, "miner", 69, 125);
+const sm = place(g, "smelter", 70, 125);
+run(g, 20);
+assert(sm.ore.length >= 8);
+assert.equal(g.inspect(sm).status, "Waiting for Ingredients");
+assert.equal(g.inspect(mine).details.Resource, "Iron ore");
+conserved(g);
 // Smelting collects and delivers one complete cycle at a time.
-g=new Game();const furnace=place(g,'smelter',71,125);for(let cycle=0;cycle<4;cycle++){for(let i=0;i<8;i++){assert(g.accept(furnace,'iron',[70,125]));g.produced++}assert(g.accept(furnace,'coal',[70,125]));g.produced++;assert(!g.accept(furnace,'iron',[70,125]));run(g,9)}assert.equal(g.fuelConsumed,4);assert.equal(g.truck.cargo.length,32);conserved(g);
+g = new Game();
+const furnace = place(g, "smelter", 71, 125);
+for (let cycle = 0; cycle < 4; cycle++) {
+  for (let i = 0; i < 8; i++) {
+    assert(g.accept(furnace, "iron", [70, 125]));
+    g.produced++;
+  }
+  assert(g.accept(furnace, "coal", [70, 125]));
+  g.produced++;
+  assert(!g.accept(furnace, "iron", [70, 125]));
+  run(g, 9);
+}
+assert.equal(g.fuelConsumed, 4);
+assert.equal(g.truck.cargo.length, 32);
+conserved(g);
 // Full mixed delivery exactly once and partial dispatch uses identical behavior.
-g=new Game();const cargo=Array.from({length:50},(_,i)=>['coal','iron_ingot','copper_ingot','tin'][i%4]);g.depot.queue.push(...cargo);g.produced=50;const initial={...g.stock};g.tick(CONFIG.step);assert.equal(g.truck.state,'outbound');assert.deepEqual(g.stock,initial);run(g,11);for(const [r,n] of Object.entries(counts(cargo)))assert.equal(g.stock[r],initial[r]+n);assert.equal(g.delivered,50);run(g,30);assert.equal(g.delivered,50);conserved(g);assert(!g.dispatch());g.depot.queue.push('tin_ingot','coal');g.produced+=2;g.tick(CONFIG.step);assert(g.dispatch());assert(!g.dispatch());run(g,11);assert.equal(g.delivered,52);assert.equal(g.stock.tin_ingot,initial.tin_ingot+1);conserved(g);
+g = new Game();
+const cargo = Array.from(
+  { length: 50 },
+  (_, i) => ["coal", "iron_ingot", "copper_ingot", "tin"][i % 4],
+);
+g.depot.queue.push(...cargo);
+g.produced = 50;
+const initial = { ...g.stock };
+g.tick(CONFIG.step);
+assert.equal(g.truck.state, "outbound");
+assert.deepEqual(g.stock, initial);
+run(g, 11);
+for (const [r, n] of Object.entries(counts(cargo)))
+  assert.equal(g.stock[r], initial[r] + n);
+assert.equal(g.delivered, 50);
+run(g, 30);
+assert.equal(g.delivered, 50);
+conserved(g);
+assert(!g.dispatch());
+g.depot.queue.push("tin_ingot", "coal");
+g.produced += 2;
+g.tick(CONFIG.step);
+assert(g.dispatch());
+assert(!g.dispatch());
+run(g, 11);
+assert.equal(g.delivered, 52);
+assert.equal(g.stock.tin_ingot, initial.tin_ingot + 1);
+conserved(g);
 // A coal splitter feeds two real smelters until both fuel buffers are full.
-g=new Game();const cs=place(g,'splitter',10,10),s1=place(g,'smelter',9,8),s2=place(g,'smelter',9,11);for(let i=0;i<2;i++){inject(g,cs,'coal');run(g,.6)}assert.equal(s1.coal,1);assert.equal(s2.coal,1);inject(g,cs,'coal');run(g,5);assert.equal(cs.item.type,'coal');conserved(g);
+g = new Game();
+const cs = place(g, "splitter", 10, 10),
+  s1 = place(g, "smelter", 9, 8),
+  s2 = place(g, "smelter", 9, 11);
+for (let i = 0; i < 2; i++) {
+  inject(g, cs, "coal");
+  run(g, 0.6);
+}
+assert.equal(s1.coal, 1);
+assert.equal(s2.coal, 1);
+inject(g, cs, "coal");
+run(g, 5);
+assert.equal(cs.item.type, "coal");
+conserved(g);
 // Self-sustaining iron line: direct ore input, coal belts, ingots to depot then inventory.
-g=new Game();place(g,'miner',69,125);place(g,'smelter',70,125);place(g,'belt',72,125);place(g,'miner',69,131,3);for(const [x,y,d] of [[69,130,3],[69,129,3],[69,128,0],[70,128,3],[70,127,3]])place(g,'belt',x,y,d);const available=g.stock.iron_ingot;run(g,300);assert(g.delivered>=50);assert(g.stock.iron_ingot>available);assert.equal(g.stock.iron,0);conserved(g);
+g = new Game();
+place(g, "miner", 69, 125);
+place(g, "smelter", 70, 125);
+place(g, "belt", 72, 125);
+place(g, "miner", 69, 131, 3);
+for (const [x, y, d] of [
+  [69, 130, 3],
+  [69, 129, 3],
+  [69, 128, 0],
+  [70, 128, 3],
+  [70, 127, 3],
+])
+  place(g, "belt", x, y, d);
+const available = g.stock.iron_ingot;
+run(g, 300);
+assert(g.delivered >= 50);
+assert(g.stock.iron_ingot > available);
+assert.equal(g.stock.iron, 0);
+conserved(g);
 // Destruction accounts for contents, pair disconnection and multi-tile footprint.
-g=new Game();const f=place(g,'smelter',10,10);f.batch={time:2,seconds:2,remaining:{tin_ingot:1}};g.produced++;g.damage(f,150);assert(!g.grid.get(11,11));conserved(g);
+g = new Game();
+const f = place(g, "smelter", 10, 10);
+f.batch = { time: 2, seconds: 2, remaining: { tin_ingot: 1 } };
+g.produced++;
+g.damage(f, 150);
+assert(!g.grid.get(11, 11));
+conserved(g);
 // Long closed loops never duplicate items.
-g=new Game();for(const [x,y,d] of [[10,10,0],[11,10,1],[11,11,2],[10,11,3]])place(g,'belt',x,y,d);inject(g,g.grid.get(10,10),'tin');run(g,100);assert.equal(g.inventory(),1);conserved(g);
-function schedule(fps){const a=new Game();place(a,'miner',69,125);for(let x=70;x<73;x++)place(a,'belt',x,125);let acc=0;for(let f=0;f<fps*130;f++){acc+=1/fps;while(acc+1e-10>=CONFIG.step){a.tick(CONFIG.step);acc-=CONFIG.step}}conserved(a);return [a.delivered,a.produced,a.inventory(),a.stock,a.truck.state]};assert.deepEqual(schedule(30),schedule(60));assert.deepEqual(schedule(60),schedule(144));
-console.log('PASS: resource economy, crossings, tunnel blocking, split fallback, direct transfer, batch capacities, mixed/partial truck deliveries, inspection, HP, conservation, loops, 30/60/144 FPS.');
+g = new Game();
+for (const [x, y, d] of [
+  [10, 10, 0],
+  [11, 10, 1],
+  [11, 11, 2],
+  [10, 11, 3],
+])
+  place(g, "belt", x, y, d);
+inject(g, g.grid.get(10, 10), "tin");
+run(g, 100);
+assert.equal(g.inventory(), 1);
+conserved(g);
+function schedule(fps) {
+  const a = new Game();
+  place(a, "miner", 69, 125);
+  for (let x = 70; x < 73; x++) place(a, "belt", x, 125);
+  let acc = 0;
+  for (let f = 0; f < fps * 130; f++) {
+    acc += 1 / fps;
+    while (acc + 1e-10 >= CONFIG.step) {
+      a.tick(CONFIG.step);
+      acc -= CONFIG.step;
+    }
+  }
+  conserved(a);
+  return [a.delivered, a.produced, a.inventory(), a.stock, a.truck.state];
+}
+assert.deepEqual(schedule(30), schedule(60));
+assert.deepEqual(schedule(60), schedule(144));
+console.log(
+  "PASS: resource economy, crossings, tunnel blocking, split fallback, direct transfer, batch capacities, mixed/partial truck deliveries, inspection, HP, conservation, loops, 30/60/144 FPS.",
+);

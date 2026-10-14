@@ -1,0 +1,111 @@
+dialog {
+  width: min(530px, calc(100% - 30px));
+  max-height: 85dvh;
+  overflow: auto;
+  background: #20262d;
+  color: #d6dee5;
+  border: 1px solid #586774;
+  border-radius: 8px;
+  padding: 22px;
+  box-shadow: 0 12px 60px #0008;
+}
+dialog::backdrop {
+  background: #0009;
+  backdrop-filter: blur(3px);
+}
+dialog h2 {
+  font-size: 17px;
+  font-weight: 500;
+  margin: 0 0 18px;
+}
+dialog p {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #aab9c5;
+}
+dialog a {
+  color: #bdcddd;
+}
+dialog form {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin: 15px 0;
+}
+.setting small {
+  display: block;
+  color: #8e9fae;
+  font-size: 10px;
+  margin-top: 4px;
+}
+.setting input {
+  accent-color: #a2b9c9;
+}
+.world-info {
+  margin-top: 22px;
+}
+.seed-label {
+  display: grid;
+  gap: 7px;
+}
+.seed-label input {
+  background: #151b21;
+  border: 1px solid #526372;
+  border-radius: 4px;
+  padding: 9px;
+}
+.world-confirm {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+  margin-top: 18px;
+}
+.controls-settings {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid #3b4650;
+}
+.controls-settings summary {
+  cursor: pointer;
+  color: #c8d5df;
+}
+.binding-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 14px 0;
+}
+.binding-grid label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 10px;
+}
+.binding-grid input {
+  width: 90px;
+  background: #151b21;
+  border: 1px solid #475b6b;
+  border-radius: 3px;
+  padding: 5px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 10px;
+}
+.credits {
+  margin-top: 20px;
+  border-top: 1px solid #3b4650;
+  padding-top: 8px;
+}
+.credits p {
+  font-size: 10px;
+}
+.credits > a {
+  font-size: 10px;
+}

@@ -1,0 +1,170 @@
+import * as Factory from "../data/index.js";
+import { DIRS } from "../utils/directions.js";
+function direction(a, b, fallback = 0) {
+  return b.x > a.x
+    ? 0
+    : b.y > a.y
+      ? 1
+      : b.x < a.x
+        ? 2
+        : b.y < a.y
+          ? 3
+          : fallback;
+}
+class Stroke {
+  constructor(type, x, y, dir = 0) {
+    this.type = type;
+    this.dir = dir;
+    this.points = [{ x, y }];
+    this.seen = new Map([[x + "," + y, 0]]);
+    this.moved = false;
+    this.revision = 0;
+  }
+  extend(x, y) {
+    let p = this.points[this.points.length - 1];
+    if (p.x === x && p.y === y) return;
+    this.moved = true;
+    this.revision++;
+    const axes =
+      Math.abs(x - p.x) >= Math.abs(y - p.y) ? ["x", "y"] : ["y", "x"];
+    for (const axis of axes)
+      while (p[axis] !== { x, y }[axis] && this.points.length < 4096) {
+        const next = {
+            ...p,
+            [axis]: p[axis] + Math.sign({ x, y }[axis] - p[axis]),
+          },
+          key = next.x + "," + next.y;
+        if (this.seen.has(key)) {
+          const index = this.seen.get(key);
+          for (const cut of this.points.slice(index + 1))
+            this.seen.delete(cut.x + "," + cut.y);
+          this.points.length = index + 1;
+        } else {
+          this.seen.set(key, this.points.length);
+          this.points.push(next);
+        }
+        p = this.points[this.points.length - 1];
+      }
+  }
+  preview(game) {
+    const signature =
+      this.revision +
+      "|" +
+      this.dir +
+      "|" +
+      this.manualDirection +
+      "|" +
+      game.network.version +
+      "|" +
+      game.creative +
+      "|" +
+      Object.values(game.stock).join(",");
+    if (this.cacheGame === game && this.cacheSignature === signature)
+      return this.cached;
+    this.cacheGame = game;
+    this.cacheSignature = signature;
+    return (this.cached = this.plan(game));
+  }
+  plan(game) {
+    const budget = { ...game.stock },
+      entries = [],
+      covered = new Set(),
+      cost = {};
+    const pay = (p) => {
+      for (const [r, n] of Object.entries(p.cost)) {
+        budget[r] -= n;
+        cost[r] = (cost[r] || 0) + n;
+      }
+    };
+    if (this.type === "underground" && this.moved) {
+      const start = this.points[0],
+        end = this.points[this.points.length - 1],
+        dir = this.manualDirection
+          ? this.dir
+          : direction(
+              start,
+              Math.abs(end.x - start.x) >= Math.abs(end.y - start.y)
+                ? { x: end.x, y: start.y }
+                : { x: start.x, y: end.y },
+              this.dir,
+            ),
+        [dx, dy] = DIRS[dir],
+        length = Math.abs(dx ? end.x - start.x : end.y - start.y);
+      if (
+        this.manualDirection &&
+        ((end.x - start.x) * dx + (end.y - start.y) * dy <= 0 ||
+          (dx ? end.y !== start.y : end.x !== start.x))
+      )
+        return {
+          entries: [game.planPair(start.x, start.y, end.x, end.y, dir, budget)],
+          cost: {},
+        };
+      for (let step = 0; step < length;) {
+        const distance = Math.min(game.config.undergroundRange, length - step),
+          x = start.x + dx * step,
+          y = start.y + dy * step,
+          ex = x + dx * distance,
+          ey = y + dy * distance,
+          p = game.planPair(x, y, ex, ey, dir, budget);
+        entries.push(p);
+        if (!p.error) pay(p);
+        step += distance + 1;
+      }
+      return { entries, cost };
+    }
+    const size = Factory.BUILDINGS[this.type]?.size || 1;
+    for (let i = 0; i < this.points.length; i++) {
+      const { x, y } = this.points[i];
+      let overlap = false;
+      for (let yy = y; yy < y + size; yy++)
+        for (let xx = x; xx < x + size; xx++)
+          if (covered.has(xx + "," + yy)) overlap = true;
+      if (overlap) continue;
+      const dir =
+          this.type === "belt" && this.points.length > 1
+            ? this.manualDirection && i === this.points.length - 1
+              ? this.dir
+              : direction(
+                  this.points[i],
+                  this.points[i + 1] || this.points[i],
+                  i
+                    ? direction(this.points[i - 1], this.points[i], this.dir)
+                    : this.dir,
+                )
+            : this.dir,
+        p = game.planPlacement(this.type, x, y, dir, budget);
+      if (
+        this.type === "demolish" &&
+        p.old &&
+        entries.some((e) => e.old === p.old)
+      )
+        continue;
+      entries.push(p);
+      if (!p.error) {
+        pay(p);
+        for (let yy = y; yy < y + size; yy++)
+          for (let xx = x; xx < x + size; xx++) covered.add(xx + "," + yy);
+      }
+    }
+    return { entries, cost };
+  }
+  commit(game) {
+    const preview = this.preview(game);
+    let placed = 0,
+      skipped = 0;
+    for (const p of preview.entries) {
+      if (p.error) {
+        skipped++;
+        continue;
+      }
+      const error =
+        p.kind === "pair"
+          ? game.placePair(p.x, p.y, p.ex, p.ey, p.dir)
+          : game.place(p.type, p.x, p.y, p.dir);
+      if (error) skipped++;
+      else if (p.action !== "noop") placed++;
+    }
+    return { placed, skipped, cost: preview.cost };
+  }
+}
+export { Stroke, direction };

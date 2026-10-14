@@ -1,0 +1,205 @@
+> Historical release notes from before the module refactor. File paths and development commands below describe those releases; use the current [README](../README.md) for development and validation.
+
+# Micro Factory — Logistics and Single-Cycle Production
+
+The current logistics update repairs shared transfer validation, enables adjacent routers and junctions, and removes production stockpiles. Existing recipes, construction, terrain, combat and the economy remain available.
+
+- Routers use round robin among compatible outlets, exclude the entry side, skip blocked branches and hold at most one item. All senders reject inward-facing belts.
+- Junctions preserve direction and reserve horizontal/vertical lanes independently. Each blocked lane holds at most one transit item. Adjacent crossings work.
+- Empty router/junction paths resolve atomically in one tick through iterative traversal. Tick-start occupancy and route reservations prevent update-order overwrites and same-tick cycles. Contending sources receive rotating deterministic priority; deliberate closed networks can circulate across ticks.
+- Smelters and processors accept exactly the ingredients of one recipe. A job commits those ingredients, processes once and retains only its remaining completed results until connected outputs accept them. Inputs stay closed until every result leaves. There is no production output inventory.
+- Recipe changes recover uncommitted ingredients into global inventory; existing jobs finish with their original recipe. Inspection shows the active recipe, progress, ingredient requirements and output blockage. Held logistics items are visible in the world.
+- Settings → **Save factory** / **Load saved factory** stores one snapshot in this browser. It restores world seed, buildings, current jobs, transit items, tunnels, truck, stock and combat. Loading a malformed snapshot leaves the running factory untouched. No older release wrote factory saves; the compatibility loader recovers legacy machine stockpiles to global inventory and preserves active work.
+
+Smelters retain their existing 8 ore + 1 coal → 8 ingot, 8-second recipe. Removing ingredient stockpiles means collecting the next cycle begins after the previous results leave, so sustained smelter throughput is lower. Feed coal continuously and let input belts back up naturally.
+
+Run all checks from the repository root:
+
+```sh
+for test in tests/*.cjs; do node "$test" || exit 1; done
+```
+
+`tests/logistics-cycle.cjs` covers router fairness, contention and recovery, all four junction directions, independent blockage, adjacent instant paths, deliberate cycles, all 19 recipes, multiple output units, recipe changes, demolition, creative mode, save/load and legacy recovery, and a 1,000-building conservation stress fixture. Existing terrain, controls, combat, economy, underground throughput and performance tests also pass. Real-browser QA could not run here because the browser executable is unavailable; mocked UI/render checks pass.
+
+The earlier release notes below describe the game's other systems; historical logistics rules are superseded above.
+
+## Play locally
+
+Open `dist/index.html` in a modern browser. No install or build step. Optional server: `python3 -m http.server 8000 --directory dist` then visit http://localhost:8000.
+
+## Project structure
+
+- `dist/simulation.js`: data-driven building/resource/recipe definitions, 20 TPS fixed clock, active-item logistics, shared machine processing, construction, truck and health.
+- `dist/combat.js`: bounded cached BFS, enemy chunk buckets, spawning, movement, attacks, turret shots and projectile impact.
+- `dist/world.js`: sparse 16×16 chunks, cross-chunk queries/indexes, seeded RNG and procedural ore growth.
+- `dist/belt-geometry.js`: shared sampled arc paths and physical path lengths.
+- `dist/assets/belts/`: 64 connected conveyor SVG variants.
+- `dist/network.js`: cached directed transport and machine-port nodes, independent Junction channels and local topology invalidation.
+- `dist/art.js`: cached texture/sprite images, local fallback loading and shared UI/world icon helpers.
+- `dist/assets/*.svg`: original raw-resource and building sprites built on an integer pixel grid.
+- `dist/assets/modernity/`: 18 tinted/composited 16×16 item PNGs, 12 original source templates and pinned provenance.
+- `dist/licenses/`: Modernity-GTNH CC BY-NC-SA 4.0, upstream GregTech: Refreshed MIT notice and attribution.
+- `dist/app.js`: input, camera, fixed-step simulation, viewport rendering, inventory, settings and inspection UI.
+- `dist/index.html`, `dist/style.css`: responsive interface.
+- `tests/foundation.cjs`: seeds, chunk boundaries, graph cache invalidation, zero tick neighbor lookups, 20 TPS, catch-up safety and data definitions.
+- `tests/world-ui.cjs`: New World confirmation/reset, seed controls, pause/tab suspension, interpolation and developer overlay.
+- `tests/performance.cjs`, `tests/benchmark-results.json`: repeatable fixture benchmarks and measured results.
+- `tests/simulation.cjs`: existing logistics and economy regression tests.
+- `tests/logistics.cjs`: all-resource crossing channels, independent blockage, automatic router fairness/backpressure, machine connections, chains and cycle prevention.
+- `tests/industrial.cjs`: tunnels under all surface types, all 16 processor recipes, switching, capacities, construction, delivery and the complete industrial chain.
+- `tests/ui.cjs`: DOM/control/artwork smoke tests using a mocked Canvas.
+
+Run `node tests/v08.cjs`, `node tests/logistics-v07.cjs`, `node tests/conveyor-visuals.cjs`, `node tests/instant-creative.cjs`, `node tests/simulation.cjs`, `node tests/industrial.cjs`, `node tests/logistics.cjs`, `node tests/foundation.cjs`, `node tests/ui.cjs` and `node tests/world-ui.cjs`. Run current-version benchmarks with `node tests/performance.cjs`.
+
+## Map and starting inventory
+
+150×150 tiles. Depot occupies (73,125) through (75,127), centered horizontally and 25 tiles north of the southern edge. Road: x=73..75, y=128..149. Truck parks at y=128. Nearby iron and coal are west of the depot; copper is northeast and tin is northwest. Ore is unlimited and generated by seeded randomized frontier growth. Iron/coal are guaranteed near the start; copper/tin have guaranteed patches farther away. Other patches are weighted and separated across the map. Sizes and frequencies are configurable in `World.DEPOSIT_CONFIG`; shapes and layouts vary with the seed.
+Starting inventory retains 100 iron ingots, 30 copper ingots, 20 tin ingots and 20 coal. It also includes **40 iron plates, 10 copper plates and 5 copper wires**, so the player can construct the first Bender, Wire Mill and Lathe despite their processed-material costs. Without starter plates, the first Bender would require its own output to build.
+
+## First iron plate production line
+
+Coordinates describe tile positions for source review; the game deliberately omits coordinate labels.
+
+1. East-facing Miner at (69,125), on the nearby iron patch.
+2. East-facing Smelter at (70,125), receiving ore directly.
+3. North-facing belts at (72,125), (72,124).
+4. East-facing Bender at (72,122), default recipe Iron ingot → Iron plate. It receives ingots through its southern edge.
+5. South-facing belts at (74,122), (74,123), (74,124), into the depot.
+6. North-facing coal Miner at (69,131).
+7. Coal belts: (69,130) north, (69,129) north, (69,128) east, (70,128) north, (70,127) north. The last feeds the smelter's southern edge.
+   This costs 45 iron ingots, 10 copper ingots and 15 iron plates. Mining, smelting and bending replenish plates through truck deliveries. Select the depot to dispatch a partially loaded truck when you need materials sooner.
+
+## Controls and UI
+
+The game fills the viewport. A collapsible icon palette sits at the bottom-left; inventory and inspection open on demand at the right. Settings contains control documentation and editable keybindings with conflict detection, persistence and Reset to defaults.
+
+Q Logistics · E Production · F Mining · T Defense · G Tools. Number keys 1–9 and 0 select the current category's slots. X selects demolition. R rotates clockwise; Shift+R counterclockwise. Right-click/Escape cancels. WASD/arrows or middle-drag pan; scroll zooms; Space pauses. With no tool selected, click a building to inspect or drag to pan. A selected tool stays active until cancelled or changed.
+
+Click or drag to preview; release to commit. Fast pointer movements are interpolated into contiguous cardinal paths. Conveyors follow the route and turn at corners. Multi-tile machines are spaced by their actual footprints. Invalid terrain, incompatible buildings and unaffordable positions are skipped without deleting anything. Middle-drag, cancellation, UI interactions and lost pointer capture never construct. Green ghosts are new placements, blue ghosts are compatible replacements/rotations, red ghosts are blocked; the drag summary includes cumulative resource cost.
+
+Underground supports straight drag chains of 2–6 tile tunnel pairs and the existing two-click entrance/exit method. Endpoints respect terrain; hidden links still pass beneath everything. Rotation changes unfinished previews. Already connected identical tunnel pairs are no-ops and retain their pipelines.
+
+Building metadata defines category, description, footprint, replacement group and whether rotation is supported. Logistics with matching footprints replace one another. Other classes replace only explicitly compatible groups with exactly matching, aligned footprints. Same-type placement is a free rotation/no-op, preserving contents and HP. Different-type replacements pay the new building's original construction cost and use existing no-refund dismantling rules for old contents. Every replacement validates before changing any building or inventory, and local logistics/pathfinding topology updates immediately.
+
+Iron walls are now available in Defense: 1×1, 200 HP, cost 5 iron ingots. They block enemy movement, can be attacked/destroyed, support continuous drag placement and respect terrain restrictions in Creative Mode. No wall item existed in the previous checked-in source. Other recipes, construction costs, turret settings, trucks, terrain, inventory and inspection remain unchanged. Factories can now be saved and restored from Settings. Previous releases had no factory save format.
+
+## Processing
+
+All new processors occupy 2×2, have 150 HP, hold 32 of each input ingredient and 32 outputs, process in two seconds and require no power.
+
+- Bender: 1 ingot → 1 plate; 1 plate → 2 foil. Cost: 15 iron plates + 5 copper ingots.
+- Wire Mill: 1 ingot → 2 wires. Cost: 10 iron plates + 5 copper plates.
+- Lathe: 1 ingot → 2 rods; 1 rod → 2 screws. Cost: 15 iron plates + 5 copper wires.
+- Ammunition Factory: 2 iron plates + 1 coal → 5 Basic Ammo. Cost: 15 iron plates + 5 copper plates. Separate ingredient limits prevent a surplus of coal from blocking plates.
+  Bender, Wire Mill and Lathe recipes exist for iron, copper and tin. Select recipes using icon buttons in inspection. A machine accepts only the selected recipe's input. Changing recipes preserves stored items; in-flight jobs finish using their original recipe. If leftovers are incompatible, restore the matching recipe or **Reclaim stored inputs** to move unused inputs into global inventory. Reserved active-job inputs are not reclaimed. Typed outputs remain queued until accepted by downstream logistics.
+  The existing Smelter still converts 8 ore + 1 coal into 8 corresponding ingots in eight seconds. Input/output icons and progress appear in inspection.
+
+## Logistics
+
+- Underground: click entrance, then exit 2–6 tile-center steps ahead in the selected direction. Both valid endpoints cost 4 iron ingots together. Only endpoints occupy surface cells. Independent links pass under **everything**, including buildings, roads and perpendicular or parallel underground connections. Surface construction above a link is allowed. Links retain endpoint identity, so crossings never mix resources. Travel takes distance × belt time to reach the exit, which then advances normally. The entrance has normal belt timing; a FIFO pipeline contains up to distance−1 hidden items, in addition to entrance/exit buffers. Several items travel simultaneously. Capacity and exit occupancy enforce backpressure. Removing either endpoint discards all hidden pipeline contents once and disconnects its partner; the surviving endpoint retains its surface-buffered item. Rebuild the pair to reconnect.
+- Junction: strict straight-through crossing with independent horizontal/vertical channels. Adjacent junctions work. A blocked lane can hold one transit item; one blocked axis does not stall the other. No facing configuration. Cost: 3 iron ingots.
+- Splitter: rear input, left/right outputs; alternates successful transfers and uses the other side when one is blocked.
+- Router: accepts all resource types from any side. Automatically rotates among compatible, available outputs excluding the input side, with backpressure and no configuration. Direct machine/router connections work through the shared transfer interface. Router-only and mixed Router/Junction chains traverse instantly through empty nodes. A visited set bounds each search; per-tick reservations prevent duplicate traversal. Intentional closed networks circulate across ticks. Cost: 3 iron ingots.
+- All buildings use shared acceptance logic, including direct compatible building-to-building transfers. Receivers accept along their perimeter; 2×2 machine output ports are east (x+2,y), south (x+1,y+2), west (x-1,y+1), north (x,y-1).
+
+## Economy and extensibility
+
+No currency. Trucks deliver actual resource types into unlimited global inventory exactly once after clearing the southern boundary. Full 50-item loads dispatch automatically; partial loads may be dispatched manually. Depot queue capacity is 100. Truck waits four seconds before returning.
+`RESOURCES`, `RECIPES`, `COSTS`, `START_INVENTORY`, `SPECS` and `CONFIG` centralize materials, icons, recipes, construction, health and timing. Recipe processing is shared by industrial machines, including multi-ingredient ammunition. Construction consumes resources only after valid placement; demolition gives no refund. `game.damage(entity, amount)` accounts for destruction and lost contents; `game.queueDamage(entity, amount)` applies future combat damage on the next simulation tick. R also rotates an inspected directional building and invalidates local connections; paired underground endpoints cannot rotate independently.
+
+## Texture provenance and licensing
+
+The repository was inspected through its full Git tree before choosing assets. Imported PNGs are pinned to Modernity-GTNH commit `1b52340349b92a11676eefb149eaec3b934eafcf`:
+`assets/gregtech/textures/items/materialicons/METALLIC/{ingot,plate,foil,wireFine,stick,screw}.png` plus their `_OVERLAY.png` companions.
+The real grayscale base PNG is multiplied by each metal color, then the unmodified overlay is composited. This produces 18 iron/copper/tin ingots, plates, foil, wires, rods and screws. Images keep their original 16×16 resolution and RGBA transparency; rendering uses nearest-neighbor scaling. Raw ores/coal use the bundled Mindustry overlays described below; the original SVGs remain loading fallbacks. Building art retains the original SVGs. All inventory, world, inspection, recipes, construction and truck cargo icons use `RESOURCES[id].icon`. `fallback` points to the original resource SVG; both Canvas image loading and DOM image errors use the local fallback without stopping the game.
+
+**The brief's MIT assumption was incorrect for the selected current snapshot.** Modernity-GTNH currently ships CC BY-NC-SA 4.0. These adapted texture assets are supplied under that license, with attribution and modification details. Noncommercial and share-alike terms apply to these assets. The pack credits GregTech: Refreshed (ULSTICK) for most original GregTech textures; its MIT copyright notice is also preserved. No permission-only assets from separately credited packs were selected intentionally. See `dist/licenses/ATTRIBUTION.txt`, the complete bundled licenses and `dist/assets/modernity/provenance.json` for source paths, tint values and output hashes. Settings includes credits and source/license links. This asset license is not a claim that all Micro Factory source code is CC licensed.
+
+## Simulation and network foundation
+
+Simulation uses 20 ticks per second (50 ms), separate from `requestAnimationFrame` rendering. `FixedClock` uses an accumulator and allows at most five catch-up updates per frame. Large elapsed intervals are discarded; hidden tabs suspend simulation and resume without fast-forwarding. Pausing freezes simulation while UI/rendering continue. Moving-item and truck positions are interpolated between tick states; transferring belt items retain their identity and prior visual position. This preserves smooth motion at a lower simulation tick rate.
+
+The directed graph caches local connections for belts, both Junction channels, Routers, Splitters, underground endpoints and machine input/output ports. Placement, demolition, paired-link changes and rotation rebuild only the edited footprint and adjacent ports (plus the linked endpoint). Resource compatibility/capacity remains a local runtime check. No item performs global pathfinding. The active-node index skips empty transport tiles; occupancy epochs prevent multiple tile hops in one update. Transport item objects and scratch arrays are reused. Miners and processors are indexed independently, so **all offscreen factories continue simulating**.
+
+The surface grid stores cells/deposits inside sparse 16×16 chunks. Chunk indexes include terrain, buildings, transport components and underground references. Multi-tile footprints and links may cross boundaries. Rendering queries only viewport-intersecting chunks, uses a small margin, catches partial building footprints, and skips offscreen truck/road draws. Deposit records and visible-query containers are reused. Terrain uses a separate typed tile layer and a bounded static chunk bitmap cache, described below.
+
+`BUILDINGS` centralizes names, footprints, HP, costs, capacities, supported recipes, speed, behavior, ports and sprite references. All industrial machines, including the Smelter's fuel-aware recipes, now share processing completion logic. Recipe records expose input/output quantity maps; the three existing smelter recipes were moved into data, rather than introducing new gameplay recipes.
+
+## Historical v0.6 benchmarks
+
+Measured locally in Node with the same fixtures and 50 ms step size in both versions. The baseline is source commit `395d12569770a5cd0ab506fe576116b38a04f8c1`. Each simulation test uses 40 warmup + 300 measured ticks. Item counts are initial counts; items continue moving until backpressure develops naturally.
+
+| Scenario | Belts | Machines | Initial items | v0.5 mean ms/tick | v0.6 mean ms/tick | v0.5 render-command CPU ms | v0.6 render-command CPU ms |
+| -------- | ----: | -------: | ------------: | ----------------: | ----------------: | -------------------------: | -------------------------: |
+| Small    |   100 |       15 |            50 |             0.036 |             0.016 |                      0.162 |                      0.156 |
+| Medium   | 1,000 |       75 |           500 |             0.178 |             0.117 |                      0.913 |                      0.924 |
+| Large    | 5,000 |      220 |         2,000 |             0.568 |             0.442 |                      1.652 |                      1.963 |
+
+Simulation averages improved in this run; large-factory mean time fell about 22%. Tail timings are noisy (large p95 1.43 ms versus baseline 0.94 ms); full percentile results are in `tests/benchmark-v06-results.json`. The new runtime also updates 20 rather than 60 times per second. Rendering numbers measure JavaScript command preparation through a **mock Canvas**, not actual raster/GPU performance or browser FPS. Interpolation and chunk-query bookkeeping add some render CPU work in the large case. Actual 60 FPS on a user's device remains unverified. No performance errors are hidden; correctness remains the priority.
+
+## Validation and limits
+
+Existing production, all 16 processor recipes, crossing lanes, balanced Routers, Splitters, direct transfers, tunnels under every surface type, mixed/partial truck delivery, construction, HP, safe recipe switching and conservation tests pass. New tests verify identical seed layouts, seed diversity, protected starting terrain, data definitions, 150/256/512 maps, cross-chunk footprints and underground references, local graph invalidation, zero neighbor tile lookups during steady transport, offscreen mining, identical 30/60/144 FPS simulation results, catch-up limits, pause and tab suspension. UI tests cover seed entry/randomization/confirmation/cancel, full state reset, settings preservation, interpolation, debug controls and viewport culling. The procedural world overview was inspected visually. Texture transparency, fallbacks, licenses and existing credits are preserved.
+
+Real-browser layout and GPU/FPS QA are unavailable in this environment; mock UI/render tests do not replace them. Finite map, unlimited deposits, one browser-local factory save, no power or upgrades. Grid preferences persist. Spending all bootstrap materials on a nonproductive factory can require restarting. New worlds start with a random seed; custom seeds regenerate identical worlds under unchanged generation settings. No infinite world generation or distant-chunk simulation suspension is implemented.
+
+## v0.7 logistics and connected conveyors
+
+Historical v0.7 behavior (superseded by the current logistics update): adjacent Junctions never connected, including aligned channels. Junction acceptance checks its straight output, so invalid/blocked crossings do not pull resources out of upstream belts. Routers remain chainable and keep fair output rotation, input-side exclusion and cycle protection. Direct Router-to-Router edges end the current transfer at the next Router buffer and resume on a later tick.
+
+Alternating Router/Junction sequences use iterative, cycle-safe logical traversal with visited node/entry states. No fixed chain-length limit or recursion. Only a successful terminal acceptance removes the original source item; intermediate nodes never hold temporary resources. Failed routes leave source items intact and let Routers try another output. Machine processing is unchanged; v0.8 preserves underground latency while replacing its single-item entrance bottleneck. A 4,001-node alternating chain is tested. Instant capacities are reserved per channel/tick to prevent competing transfers from overwriting resources.
+
+Historical v0.7 rendering hid Router and Junction resource sprites; current rendering shows held items and separates crossing lanes. Their items remain in simulation and inspection. Icons reappear on visible destination belts rather than animating or flickering through an instant chain.
+
+Ordinary belts use 64 cached full-tile SVG connection variants, derived from actual structural input/output compatibility. Shapes and masks refresh locally after placement, rotation and demolition; rendering performs no neighbor scans. Straight, endpoint, branched and all corner variants share boundary-aligned lanes. Fractional zoom snaps adjacent sprite edges to the same pixel boundary to avoid seams. Curve artwork and item movement use matching quarter-circle paths. Geometry samples are shared by rendering and simulation; curve duration scales with arc length so linear item speed stays consistent. The previous 0.55-second straight-belt duration is preserved.
+
+Creative Mode remains in Settings: construction and underground pairs are free without consuming or granting inventory; normal placement/ore/road checks remain. The preference persists locally and survives New World; switching off restores costs.
+
+Additional checks: `node tests/logistics-v07.cjs` and `node tests/conveyor-visuals.cjs`. Prior tests were updated where the v0.7 rules explicitly supersede adjacent-Junction and instant Router-only behavior. Existing production, recipes, economy, health, Creative Mode, seeded worlds, chunks and fixed-clock tests still pass. Current benchmark results are `tests/benchmark-results.json`: about 0.05 / 0.13 / 0.53 ms per tick for small/medium/large fixtures. Mock render-command CPU was about 0.28 / 2.08 / 4.74 ms per frame, including connected artwork and curve interpolation; these are not browser GPU or FPS measurements. Browser visual QA remains unavailable; sprite geometry and a belt asset strip were inspected independently.
+
+## v0.8 defense and underground transport
+
+Enemy Spawning starts **OFF**, independently of Creative Mode. Settings provides the spawn toggle, **Clear Enemies** and **Locate northern spawner**. The reserved, nondestructible 3×3 spawn marker sits at x=73..75, y=0..2; no buildings/deposits overlap it. Enemies start inside this clear area. A new enemy appears every 5 seconds when enabled, up to 30 active. Disabling spawning leaves existing enemies attacking; Clear Enemies removes enemies and all combat projectiles/effects without changing buildings. New World preserves the current toggle; reloading defaults it OFF.
+
+Basic Turret: 2×2, 200 HP, cost 20 iron plates + 10 copper plates. It accepts only physically delivered Basic Ammo, up to 50 rounds, and never pulls from global inventory. Creative Mode bypasses construction costs only. It targets the nearest enemy within 8 tiles, breaking ties by enemy ID; each valid shot consumes one round, deals 10 damage on impact, and fires at most twice per second. Projectiles travel 24 tiles/second and expire after 2 seconds. Inspection shows ammo, target, range, damage, fire rate and status; selection shows range. Barrel direction, muzzle flashes, projectiles, HP bars and hit/death rings use lightweight Canvas drawing.
+
+Basic Enemy: 50 HP, speed 1.5 tiles/second, 5 damage per adjacent attack, once per second. Four-neighbor BFS picks the nearest building by reachable grid distance, with a deterministic neighbor order. Buildings block movement and can themselves be attacked as obstacles. Paths are cached; destruction or an obstructed next step requests a new path. One incremental search shares a maximum 2,000 expanded tiles per tick across all enemies. Chunk buckets supply local turret targeting queries. All combat runs in the existing 20 TPS simulation, including offscreen. Pause freezes combat; hidden-tab behavior remains suspension without catch-up. Depot destruction clears its footprint/logistics nodes and stops depot loading; no game-over screen. No loot, waves, friendly fire or enemy projectiles are implemented; enemy attacks are melee. Turrets may fire rounds at an enemy that another projectile kills before impact; such in-flight rounds expire rather than refunding.
+
+Normal and underground conveyor inspection shows only name and HP; detailed simulation state remains available internally. Other logistics, machines, depot and turret inspection remains detailed. Conveyor item order and counts are preserved. Destroyed inventory, including underground FIFO items, is accounted as discarded; fired rounds are accounted in `ammoConsumed`.
+
+### Validation
+
+`node tests/v08.cjs` compares the same 40-tile line for 80 simulated seconds (30 warmup + 50 measured): ordinary belts, one maximum-length tunnel, multiple tunnels, consecutive tunnels, and tunnels under buildings/crossings. Every case delivered **97 total items, 83 measured items** with alternating types preserved. Hidden pipelines held multiple items concurrently. Additional checks cover all four directions, cross-chunk tunnels, exits to Routers/machines, blocked output recovery, demolition of either endpoint, all-resource logistics, exact ammo recipes/costs, capacities, direct ingredient feeds, recipe backpressure, ammo exhaustion/resupply, target range/order, projectile impact/expiry, spawn caps/toggles/clear, reserved terrain, bounded pathfinding, destruction and graph cleanup. 30/60/144 FPS schedules yield identical combat results; mocked UI tests verify settings, HP-only inspection, recipe icons, offscreen combat and pause.
+
+`tests/underground-v08-results.json` records throughput parity. `tests/combat-v08-results.json` records a 100-turret/30-enemy simulation benchmark with 400 measured ticks; timings are machine-dependent and not browser FPS. Existing factory regression tests and `tests/performance.cjs` remain passing. Real-browser visual and GPU/FPS QA were unavailable; mocked UI/render checks cannot establish browser frame rate.
+
+For a playable defense line, feed a Bender's iron plates and a coal Miner's output into an Ammunition Factory. Route its east-facing output through a conveyor and Router into a turret's perimeter, then enable spawning. Build near the northern marker to test combat quickly. Resources still require production/logistics even in creative mode; starter global inventory is for construction, not instant machine or turret loading.
+
+## Mindustry ore artwork
+
+All four raw materials now use locally bundled Mindustry ore overlays, with three deterministic coordinate-based tile variants per ore and nearest-neighbor scaling. Copper/coal are unchanged; iron is recolored scrap and tin is recolored lead because Mindustry has no iron/tin sprites. Shared raw-material icons use the first variant in inventory, belts, recipes, miner badges and inspection. Original SVGs remain loading fallbacks. Source PNGs, pinned provenance and the upstream GPL-3.0 license are included; Settings credits link to attribution. No simulation or world-generation behavior changes.
+
+## Procedural terrain and sand
+
+Every new world now generates coherent grassland, sand, gravel, stone, hills, mountain ridges and lakes using seeded, multi-octave interpolated value noise. A noisy mountain border encloses the map, with openings for the northern spawn and southern truck road. Terrain occupies separate typed arrays (`Grid.terrain`, `variants`, `transitions`), independent of deposits and buildings. Roads retain their existing position and three-tile width.
+
+Grass, sand, gravel and stone support construction and enemy movement. Hills, mountains and water block both, including in Creative Mode. Placement checks every footprint tile. Underground links can pass beneath natural obstacles; their surface endpoints must be buildable. Enemy BFS excludes blocked terrain, retains its shared 2,000-node tick budget and invalidates cached searches/routes when buildings change. The existing melee attack behavior still handles blocking player buildings. A floating-point tolerance fixes enemies stopping a fraction beyond an attack boundary.
+
+Generation protects a broad starting clearing, four starting resource areas, a sand source and the truck road. Flood-fill validation checks spawn-to-depot access with three-tile clearance, a clear connected road, sufficient starting land, access to the starting resources and every ore tile. Disconnected starting areas receive wandering seven-tile-wide carved passes; validation runs again before the world is accepted. Ore generation uses only reachable buildable land and excludes the road, spawn and protected sand source. Seeds reproduce terrain, variants and deposits under the same generator version.
+
+Miners on sand produce unlimited Sand without changing terrain. An ore overlay takes priority over sand. `Game.resourceAt()` supplies the miner, inspection and rendering. Sand has a Mindustry item icon, an original SVG fallback, inventory stock and full compatibility with belts, routers, junctions, tunnels and depot/truck delivery. It has no processing recipe yet.
+
+Original Mindustry PNGs are pinned to commit `17012d61d9e4c3cbd9820d87e81c24495486ac53`; source paths and modifications are recorded in `dist/assets/mindustry/provenance.json`. Hills and mountains use shaded two-tile rock sprites. Shore/scree bands and cached pixel alpha edge masks soften transitions. Water depth varies by distance from the shore. No noise is evaluated during rendering. The terrain renderer draws only viewport-intersecting 16×16 chunks, using reduced-resolution bitmaps when zoomed out and nearest-neighbor scaling. Its cache is capped at 128 entries and 64 MiB, invalidates on image loading or a new terrain version, and resets on New World. Zoom now reaches six pixels per tile for a map survey.
+
+Validation: `node tests/terrain.cjs` covers 105 seeds, deterministic 64/150/256/512 maps, wide access, roads, starting ores/sand, borders, multi-tile and Creative Mode restrictions, mining and sand logistics, actual enemy lake detours, construction-triggered replanning, adversarial passage repair and UI/cache integration. Existing fixed-coordinate regression fixtures explicitly use `terrain:false` to isolate their original logistics/production/combat scenarios; the terrain suite uses actual generated maps. All prior regression suites pass. Native Canvas renders of the complete terrain overview and the actual game renderer were visually inspected. Browser GPU/FPS measurements remain unavailable. Current Node benchmark results are in `tests/benchmark-results.json`; they measure simulation and mocked render command preparation, not browser frame rate.
+
+Settings now provides Save factory and Load saved factory. `new Game({terrain:false})` provides a flat-world compatibility option for tools and fixed-coordinate fixtures. Optional lava is deferred.
+
+## Play online
+
+https://Lucky69420.github.io/MICRO_Factory/
+The GitHub Pages workflow publishes `dist` after every update to `main`. After deployment succeeds, reload the play link; use Ctrl+Shift+R if the browser displays cached files. Settings → New World creates another valley, and a custom seed reproduces it.
+
+## Controls update validation
+
+Run `node tests/build-controls.cjs` for live pointer/keyboard handler coverage and centralized placement tests: long routed conveyors and actual corner throughput, no duplicate placement on backtracking, multi-tile spacing, safe logistics swaps, atomic incompatible/partial-footprint/insufficient-funds failures, explicitly compatible production swaps, exact cumulative budgets, underground chains, wall combat, release/cancellation/panning, category slots, both rotation directions, typing guards, persisted bindings/reset and palette pagination. Preview validation is cached until cursor, orientation, topology, inventory or Creative Mode changes; construction remains local to edited cells. Existing industrial and creative tests now expect repeated same-type placement to succeed as a no-op instead of rejecting occupancy. All other regression suites remain unchanged in behavior.

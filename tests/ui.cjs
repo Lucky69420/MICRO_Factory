@@ -1,17 +1,323 @@
-const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');const html=fs.readFileSync('dist/index.html','utf8'),storage=new Map();let draws=0,lines=0;
-function boot(overrides={}){const events={};const ids=[...html.matchAll(/id="([^"]+)"/g)].map(m=>m[1]);const elements=Object.fromEntries(ids.map(id=>[id,{textContent:'',value:'',hidden:false,open:false,style:{},classList:{toggle(){}},showModal(){this.open=true},close(){this.open=false},click(){this.onclick?.()},setAttribute(k,v){this[k]=v},getBoundingClientRect(){return {left:0,top:0}}}]));const ctx=new Proxy({},{get:(_,key)=>()=>{draws++;if(key==='lineTo')lines++}});const canvas=elements.world;Object.assign(canvas,{clientWidth:1000,clientHeight:700,getContext:()=>ctx,setPointerCapture(){},addEventListener(){}});const buttons=[...html.matchAll(/data-tool="([^"]+)"/g)].map(m=>({dataset:{tool:m[1]},classList:{toggle(){}}}));let next;const scope={console,Image:class{constructor(){this.complete=true;this.naturalWidth=24}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},performance:{now:()=>1000},devicePixelRatio:1,document:{createElement:tag=>({width:0,height:0,getContext:()=>new Proxy({},{get:()=>()=>{}})}),querySelector:()=>canvas,getElementById:id=>{assert(elements[id],'Missing DOM element '+id);return elements[id]},querySelectorAll:()=>buttons,addEventListener:(type,fn,capture)=>{if(type!=='error'||capture)events[type]=fn}},requestAnimationFrame:f=>{next=f}};scope.window=scope;scope.globalThis=scope;vm.createContext(scope);for(const f of ['belt-geometry.js','world.js','network.js','combat.js','simulation.js','save.js','art.js','terrain-art.js','build-stroke.js','app.js']){vm.runInContext(fs.readFileSync(overrides[f]||'dist/'+f,'utf8'),scope);if(f==='simulation.js'&&overrides.terrain!==true)vm.runInContext('Factory.Game=class extends Factory.Game{constructor(config={}){super({terrain:false,...config})}}',scope)}const exec=s=>vm.runInContext(s,scope);const click=(x,y)=>{const cam=exec('({...cam})');canvas.onpointerdown({button:0,pointerId:1,clientX:(x+.5-cam.x)*cam.scale+500,clientY:(y+.5-cam.y)*cam.scale+350});canvas.onpointerup()};return {events,elements,canvas,buttons,scope,exec,click,counters:()=>({draws,lines}),resetCounters:()=>{draws=0;lines=0},frame:ms=>next(ms)}}
-module.exports={boot};
-if(require.main===module){
-const u=boot(),{elements,canvas,buttons,scope,exec,click,frame}=u;frame(1000);frame(1200);assert.equal(elements['stock-iron_ingot'].textContent,100);assert.equal(elements['building-panel'].hidden,true);assert(/id="inventory-panel" hidden/.test(html));elements['inventory-panel'].hidden=true;elements['inventory-button'].onclick();assert.equal(elements['inventory-panel'].hidden,false);assert.equal(elements['inventory-button']['aria-expanded'],'true');frame(1400);assert.equal(elements['inventory-panel'].hidden,false);elements['inventory-button'].onclick();assert.equal(elements['inventory-panel'].hidden,true);
-for(const b of buttons){b.onclick();canvas.onpointermove({clientX:450,clientY:350});frame(1500)}exec("tool=null");elements.pause.onclick();elements.rotate.onclick();elements.home.onclick();click(74,126);frame(1600);assert.equal(elements['building-name'].textContent,'Depot');assert.equal(elements.dispatch.disabled,true);exec("game.depot.queue.push('copper_wire');game.tick(game.config.step)");frame(1800);assert.equal(elements.dispatch.disabled,false);elements.dispatch.onclick();assert.equal(exec('game.truck.state'),'outbound');
-exec("game.place('router',80,125)");click(80,125);frame(2000);assert.equal(elements['building-name'].textContent,'Router');assert(elements['building-details'].innerHTML.includes('Automatic round robin'));assert(!elements['router-config']);assert(!elements['building-details'].innerHTML.includes('Direction'));scope.onkeydown({key:'Escape',preventDefault(){}});assert.equal(elements['building-panel'].hidden,true);
-exec("dir=0;select('underground')");const initial=exec('game.stock.iron_ingot');click(80,120);assert.equal(exec('game.stock.iron_ingot'),initial);click(84,120);assert.equal(exec('game.stock.iron_ingot'),initial-4);assert.equal(exec('game.grid.get(84,120).mode'),'exit');
-exec("game.place('splitter',82,125);game.place('junction',83,125);game.place('miner',69,125);game.place('smelter',70,125);game.place('belt',72,125);game.place('bender',80,122);game.place('wiremill',82,122);game.place('lathe',84,122)");exec('select(null)');click(80,122);frame(2200);assert.equal(elements['building-name'].textContent,'Bender');assert.equal(elements['recipe-controls'].hidden,false);assert(elements['recipe-options'].innerHTML.includes('bender_copper_foil'));assert(elements['active-recipe'].innerHTML.includes('assets/modernity/iron_plate.png'));exec("game.accept(selected,'iron_ingot',[79,122])");elements['recipe-options'].onclick({target:{closest:()=>({dataset:{recipe:'bender_copper_foil'}})}});assert.equal(exec('selected.recipe'),'bender_copper_foil');assert.equal(exec('selected.input.length'),0);elements['reclaim-inputs'].onclick();assert.equal(exec('selected.input.length'),0);
-// Grid toggle changes only rendering and persists across a fresh app session.
-elements['settings-button'].onclick();assert(elements['settings-dialog'].open);elements['settings-dialog'].open=false;lines=0;frame(2400);const gridLines=lines;elements['grid-toggle'].checked=false;elements['grid-toggle'].onchange();assert.equal(storage.get('microfactory.showGrid'),'false');lines=0;frame(2600);assert(lines<gridLines);assert.equal(exec('settings.showGrid'),false);const second=boot();assert.equal(second.elements['grid-toggle'].checked,false);assert.equal(second.exec('settings.showGrid'),false);draws=0;frame(2800);assert(draws<1200,'Rendering must cull the large map');
-assert(!/id="(?:money|truck|coords|zoom|in|out|truckstate)"/.test(html));assert(!/\$\d|AVAILABLE FUNDS|Factory Floor/i.test(html));const {RESOURCES,SPECS}=require('./flat-fixture.cjs');for(const r of Object.values(RESOURCES))assert(fs.existsSync('dist/'+r.icon));for(const t of Object.keys(SPECS))assert(fs.existsSync('dist/assets/building-'+t+'.svg'));for(const r of Object.keys(RESOURCES)){assert(elements['stock-'+r])}
-// World and DOM image failures switch to the packaged SVG fallback.
-assert.equal(exec("Art.items.iron_ingot.src"),'assets/modernity/iron_ingot.png');exec('Art.items.iron_ingot.onerror()');assert.equal(exec('Art.items.iron_ingot.src'),'assets/iron_ingot.svg');let fallback='assets/copper_plate.svg';const failed={tagName:'IMG',src:'missing.png',getAttribute:()=>fallback,removeAttribute:()=>{fallback=null}};u.events.error({target:failed});assert.equal(failed.src,'assets/copper_plate.svg');assert.equal(fallback,null);assert(html.includes('Resource textures from'));assert(html.includes('Modernity-GTNH-CC-BY-NC-SA-4.0.txt'));exec("game.accept(game.grid.get(83,125),'coal',[82,125]);game.accept(game.grid.get(83,125),'tin_wire',[83,124])");click(83,125);frame(3000);assert(elements['building-details'].innerHTML.includes('Horizontal channel'));assert(elements['building-details'].innerHTML.includes('Vertical channel'));assert(!elements['building-details'].innerHTML.includes('Direction'));assert(!html.includes('filter-default'));
-console.log('PASS: UI boot, all tools/sprites, collapsed inventory, inspection, automatic router inspection, dispatch, paired placement, recipe controls/reclaim, grid rendering/persistence, viewport culling, asset coverage.');
-
+const vm = require("node:vm"),
+  fs = require("node:fs"),
+  assert = require("node:assert/strict");
+const html = fs.readFileSync("index.html", "utf8"),
+  storage = new Map();
+let draws = 0,
+  lines = 0;
+async function boot(overrides = {}) {
+  const events = {};
+  const ids = [...html.matchAll(/id="([^"]+)"/g)].map((m) => m[1]);
+  ids.push(
+    ...Object.keys(require("../src/data/items.js").RESOURCES).map(
+      (id) => "stock-" + id,
+    ),
+  );
+  const elements = Object.fromEntries(
+    ids.map((id) => [
+      id,
+      {
+        textContent: "",
+        value: "",
+        hidden: false,
+        open: false,
+        style: {},
+        classList: { toggle() {} },
+        showModal() {
+          this.open = true;
+        },
+        close() {
+          this.open = false;
+        },
+        click() {
+          this.onclick?.();
+        },
+        setAttribute(k, v) {
+          this[k] = v;
+        },
+        getBoundingClientRect() {
+          return { left: 0, top: 0 };
+        },
+      },
+    ]),
+  );
+  const ctx = new Proxy(
+    {},
+    {
+      get: (_, key) => () => {
+        draws++;
+        if (key === "lineTo") lines++;
+      },
+    },
+  );
+  const canvas = elements.world;
+  Object.assign(canvas, {
+    clientWidth: 1000,
+    clientHeight: 700,
+    getContext: () => ctx,
+    setPointerCapture() {},
+    addEventListener() {},
+  });
+  const buttons = [...html.matchAll(/data-tool="([^"]+)"/g)].map((m) => ({
+    dataset: { tool: m[1] },
+    classList: { toggle() {} },
+  }));
+  let next;
+  const scope = {
+    console,
+    structuredClone,
+    Image: class {
+      constructor() {
+        this.complete = true;
+        this.naturalWidth = 24;
+      }
+    },
+    localStorage: {
+      getItem: (k) => storage.get(k) || null,
+      setItem: (k, v) => storage.set(k, v),
+    },
+    performance: { now: () => 1000 },
+    devicePixelRatio: 1,
+    document: {
+      createElement: (tag) => ({
+        width: 0,
+        height: 0,
+        getContext: () => new Proxy({}, { get: () => () => {} }),
+      }),
+      querySelector: () => canvas,
+      getElementById: (id) => {
+        assert(elements[id], "Missing DOM element " + id);
+        return elements[id];
+      },
+      querySelectorAll: () => buttons,
+      addEventListener: (type, fn, capture) => {
+        if (type !== "error" || capture) events[type] = fn;
+      },
+    },
+    requestAnimationFrame: (f) => {
+      next = f;
+    },
+  };
+  scope.window = scope;
+  scope.globalThis = scope;
+  vm.createContext(scope);
+  // Evaluate real native ES modules in an isolated browser-shaped context.
+  // The property bridge below exists only for historical assertion strings.
+  const path = require("node:path");
+  const modules = new Map();
+  const getModule = (file) => {
+    file = path.resolve(file);
+    if (!modules.has(file))
+      modules.set(
+        file,
+        new vm.SourceTextModule(fs.readFileSync(file, "utf8"), {
+          context: scope,
+          identifier: file,
+        }),
+      );
+    return modules.get(file);
+  };
+  const entry = getModule("src/App.js");
+  await entry.link((specifier, parent) =>
+    getModule(path.resolve(path.dirname(parent.identifier), specifier)),
+  );
+  await entry.evaluate();
+  const API = modules.get(path.resolve("src/core/Game.js")).namespace;
+  const Game =
+    overrides.terrain === true
+      ? API.Game
+      : class extends API.Game {
+          constructor(config = {}) {
+            super({ terrain: false, ...config });
+          }
+        };
+  const app = entry.namespace.createApp({ gameClass: Game });
+  for (const key of Object.keys(app))
+    Object.defineProperty(scope, key, {
+      configurable: true,
+      get: () => app[key],
+      set: (value) => {
+        app[key] = value;
+      },
+    });
+  Object.assign(scope, {
+    Game,
+    Factory: { ...modules.get(path.resolve("src/data/index.js")).namespace },
+    Art: modules.get(path.resolve("src/rendering/Art.js")).namespace.Art,
+    TerrainArt: modules.get(path.resolve("src/rendering/TerrainArt.js"))
+      .namespace.TerrainArt,
+  });
+  const exec = (s) => vm.runInContext(s, scope);
+  const click = (x, y) => {
+    const cam = exec("({...cam})");
+    canvas.onpointerdown({
+      button: 0,
+      pointerId: 1,
+      clientX: (x + 0.5 - cam.x) * cam.scale + 500,
+      clientY: (y + 0.5 - cam.y) * cam.scale + 350,
+    });
+    canvas.onpointerup();
+  };
+  return {
+    events,
+    elements,
+    canvas,
+    buttons,
+    scope,
+    exec,
+    click,
+    counters: () => ({ draws, lines }),
+    resetCounters: () => {
+      draws = 0;
+      lines = 0;
+    },
+    frame: (ms) => next(ms),
+  };
 }
+module.exports = { boot };
+if (require.main === module)
+  (async () => {
+    const u = await boot(),
+      { elements, canvas, buttons, scope, exec, click, frame } = u;
+    frame(1000);
+    frame(1200);
+    assert.equal(elements["stock-iron_ingot"].textContent, 100);
+    assert.equal(elements["building-panel"].hidden, true);
+    assert(/id="inventory-panel"\s+hidden/.test(html));
+    elements["inventory-panel"].hidden = true;
+    elements["inventory-button"].onclick();
+    assert.equal(elements["inventory-panel"].hidden, false);
+    assert.equal(elements["inventory-button"]["aria-expanded"], "true");
+    frame(1400);
+    assert.equal(elements["inventory-panel"].hidden, false);
+    elements["inventory-button"].onclick();
+    assert.equal(elements["inventory-panel"].hidden, true);
+    for (const b of buttons) {
+      b.onclick();
+      canvas.onpointermove({ clientX: 450, clientY: 350 });
+      frame(1500);
+    }
+    exec("tool=null");
+    elements.pause.onclick();
+    elements.rotate.onclick();
+    elements.home.onclick();
+    click(74, 126);
+    frame(1600);
+    assert.equal(elements["building-name"].textContent, "Depot");
+    assert.equal(elements.dispatch.disabled, true);
+    exec("game.depot.queue.push('copper_wire');game.tick(game.config.step)");
+    frame(1800);
+    assert.equal(elements.dispatch.disabled, false);
+    elements.dispatch.onclick();
+    assert.equal(exec("game.truck.state"), "outbound");
+    exec("game.place('router',80,125)");
+    click(80, 125);
+    frame(2000);
+    assert.equal(elements["building-name"].textContent, "Router");
+    assert(
+      elements["building-details"].innerHTML.includes("Automatic round robin"),
+    );
+    assert(!elements["router-config"]);
+    assert(!elements["building-details"].innerHTML.includes("Direction"));
+    scope.onkeydown({ key: "Escape", preventDefault() {} });
+    assert.equal(elements["building-panel"].hidden, true);
+    exec("dir=0;select('underground')");
+    const initial = exec("game.stock.iron_ingot");
+    click(80, 120);
+    assert.equal(exec("game.stock.iron_ingot"), initial);
+    click(84, 120);
+    assert.equal(exec("game.stock.iron_ingot"), initial - 4);
+    assert.equal(exec("game.grid.get(84,120).mode"), "exit");
+    exec(
+      "game.place('splitter',82,125);game.place('junction',83,125);game.place('miner',69,125);game.place('smelter',70,125);game.place('belt',72,125);game.place('bender',80,122);game.place('wiremill',82,122);game.place('lathe',84,122)",
+    );
+    exec("select(null)");
+    click(80, 122);
+    frame(2200);
+    assert.equal(elements["building-name"].textContent, "Bender");
+    assert.equal(elements["recipe-controls"].hidden, false);
+    assert(elements["recipe-options"].innerHTML.includes("bender_copper_foil"));
+    assert(
+      elements["active-recipe"].innerHTML.includes(
+        "assets/modernity/iron_plate.png",
+      ),
+    );
+    exec("game.accept(selected,'iron_ingot',[79,122])");
+    elements["recipe-options"].onclick({
+      target: {
+        closest: () => ({ dataset: { recipe: "bender_copper_foil" } }),
+      },
+    });
+    assert.equal(exec("selected.recipe"), "bender_copper_foil");
+    assert.equal(exec("selected.input.length"), 0);
+    elements["reclaim-inputs"].onclick();
+    assert.equal(exec("selected.input.length"), 0);
+    // Grid toggle changes only rendering and persists across a fresh app session.
+    elements["settings-button"].onclick();
+    assert(elements["settings-dialog"].open);
+    elements["settings-dialog"].open = false;
+    lines = 0;
+    frame(2400);
+    const gridLines = lines;
+    elements["grid-toggle"].checked = false;
+    elements["grid-toggle"].onchange();
+    assert.equal(storage.get("microfactory.showGrid"), "false");
+    lines = 0;
+    frame(2600);
+    assert(lines < gridLines);
+    assert.equal(exec("settings.showGrid"), false);
+    const second = await boot();
+    assert.equal(second.elements["grid-toggle"].checked, false);
+    assert.equal(second.exec("settings.showGrid"), false);
+    draws = 0;
+    frame(2800);
+    assert(draws < 1200, "Rendering must cull the large map");
+    assert(!/id="(?:money|truck|coords|zoom|in|out|truckstate)"/.test(html));
+    assert(!/\$\d|AVAILABLE FUNDS|Factory Floor/i.test(html));
+    const { RESOURCES, SPECS } = require("./flat-fixture.cjs");
+    for (const r of Object.values(RESOURCES))
+      assert(fs.existsSync("public/" + r.icon));
+    for (const t of Object.keys(SPECS))
+      assert(fs.existsSync("public/assets/building-" + t + ".svg"));
+    for (const r of Object.keys(RESOURCES)) {
+      assert(elements["stock-" + r]);
+    }
+    // World and DOM image failures switch to the packaged SVG fallback.
+    assert.equal(
+      exec("Art.items.iron_ingot.src"),
+      "assets/modernity/iron_ingot.png",
+    );
+    exec("Art.items.iron_ingot.onerror()");
+    assert.equal(exec("Art.items.iron_ingot.src"), "assets/iron_ingot.svg");
+    let fallback = "assets/copper_plate.svg";
+    const failed = {
+      tagName: "IMG",
+      src: "missing.png",
+      getAttribute: () => fallback,
+      removeAttribute: () => {
+        fallback = null;
+      },
+    };
+    u.events.error({ target: failed });
+    assert.equal(failed.src, "assets/copper_plate.svg");
+    assert.equal(fallback, null);
+    assert(html.includes("Resource textures from"));
+    assert(html.includes("Modernity-GTNH-CC-BY-NC-SA-4.0.txt"));
+    exec(
+      "game.accept(game.grid.get(83,125),'coal',[82,125]);game.accept(game.grid.get(83,125),'tin_wire',[83,124])",
+    );
+    click(83, 125);
+    frame(3000);
+    assert(
+      elements["building-details"].innerHTML.includes("Horizontal channel"),
+    );
+    assert(elements["building-details"].innerHTML.includes("Vertical channel"));
+    assert(!elements["building-details"].innerHTML.includes("Direction"));
+    assert(!html.includes("filter-default"));
+    console.log(
+      "PASS: UI boot, all tools/sprites, collapsed inventory, inspection, automatic router inspection, dispatch, paired placement, recipe controls/reclaim, grid rendering/persistence, viewport culling, asset coverage.",
+    );
+  })().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });

@@ -1,0 +1,353 @@
+{
+  "version": 2,
+  "config": {
+    "width": 64,
+    "height": 64,
+    "productionSeconds": 2,
+    "beltSeconds": 0.55,
+    "batchSeconds": 8,
+    "batchSize": 8,
+    "depotCapacity": 100,
+    "truckCapacity": 50,
+    "truckSpeed": 12,
+    "returnSeconds": 4,
+    "undergroundRange": 6,
+    "chunkSize": 16,
+    "ticksPerSecond": 20,
+    "maxCatchUpTicks": 5,
+    "step": 0.05,
+    "ammoCapacity": 50,
+    "turretRange": 8,
+    "fireRate": 2,
+    "shotDamage": 10,
+    "projectileSpeed": 24,
+    "projectileLifetime": 2,
+    "spawnInterval": 5,
+    "enemyCap": 30,
+    "enemyHp": 50,
+    "enemySpeed": 1.5,
+    "enemyDamage": 5,
+    "enemyAttackSeconds": 1,
+    "pathNodesPerTick": 2000,
+    "seed": "legacy-save",
+    "terrain": false,
+    "creative": true
+  },
+  "seed": "legacy-save",
+  "creative": true,
+  "stock": {
+    "sand": 0,
+    "coal": 20,
+    "iron": 0,
+    "iron_ingot": 100,
+    "iron_plate": 40,
+    "iron_foil": 0,
+    "iron_wire": 0,
+    "iron_rod": 0,
+    "iron_screw": 0,
+    "copper": 0,
+    "copper_ingot": 30,
+    "copper_plate": 10,
+    "copper_foil": 0,
+    "copper_wire": 5,
+    "copper_rod": 0,
+    "copper_screw": 0,
+    "tin": 0,
+    "tin_ingot": 20,
+    "tin_plate": 0,
+    "tin_foil": 0,
+    "tin_wire": 0,
+    "tin_rod": 0,
+    "tin_screw": 0,
+    "basic_ammo": 0
+  },
+  "counters": {
+    "tickCount": 20,
+    "time": 1.0000000000000002,
+    "spent": 0,
+    "delivered": 0,
+    "produced": 6,
+    "discarded": 0,
+    "fuelConsumed": 0,
+    "convertedGain": 0,
+    "ammoConsumed": 0
+  },
+  "depot": {
+    "x": 30,
+    "y": 39,
+    "removed": false
+  },
+  "deposits": [],
+  "truck": {
+    "state": "loading",
+    "cargo": ["copper_plate"],
+    "y": 42,
+    "timer": 0,
+    "previousY": 42
+  },
+  "buildings": [
+    {
+      "type": "depot",
+      "x": 30,
+      "y": 39,
+      "dir": 0,
+      "hp": 1000,
+      "progress": 0,
+      "item": null,
+      "channels": {
+        "horizontal": null,
+        "vertical": null
+      },
+      "input": [],
+      "recipe": null,
+      "ore": [],
+      "coal": 0,
+      "batch": null,
+      "mode": "entrance",
+      "turn": 0,
+      "ammo": 0,
+      "cooldown": 0,
+      "angle": 0,
+      "queue": []
+    },
+    {
+      "type": "junction",
+      "x": 10,
+      "y": 10,
+      "dir": 0,
+      "hp": 50,
+      "progress": 0,
+      "item": null,
+      "channels": {
+        "horizontal": {
+          "type": "iron_wire",
+          "from": [-1, 0],
+          "progress": 1,
+          "previousProgress": 1,
+          "entrySide": 2,
+          "direction": 0
+        },
+        "vertical": {
+          "type": "coal",
+          "from": [0, -1],
+          "progress": 1,
+          "previousProgress": 1,
+          "entrySide": 3,
+          "direction": 1
+        }
+      },
+      "input": [],
+      "recipe": null,
+      "ore": [],
+      "coal": 0,
+      "batch": null,
+      "mode": "entrance",
+      "turn": 0,
+      "ammo": 0,
+      "cooldown": 0,
+      "angle": 0
+    },
+    {
+      "type": "router",
+      "x": 15,
+      "y": 10,
+      "dir": 0,
+      "hp": 50,
+      "progress": 0,
+      "item": null,
+      "channels": {
+        "horizontal": null,
+        "vertical": null
+      },
+      "input": [],
+      "recipe": null,
+      "ore": [],
+      "coal": 0,
+      "batch": null,
+      "mode": "entrance",
+      "turn": 0,
+      "ammo": 0,
+      "cooldown": 0,
+      "angle": 0
+    },
+    {
+      "type": "underground",
+      "x": 20,
+      "y": 10,
+      "dir": 0,
+      "hp": 30,
+      "progress": 0,
+      "item": null,
+      "channels": {
+        "horizontal": null,
+        "vertical": null
+      },
+      "input": [],
+      "recipe": null,
+      "ore": [],
+      "coal": 0,
+      "batch": null,
+      "mode": "entrance",
+      "turn": 0,
+      "ammo": 0,
+      "cooldown": 0,
+      "angle": 0
+    },
+    {
+      "type": "underground",
+      "x": 26,
+      "y": 10,
+      "dir": 0,
+      "hp": 30,
+      "progress": 0,
+      "item": null,
+      "channels": {
+        "horizontal": null,
+        "vertical": null
+      },
+      "input": [],
+      "recipe": null,
+      "ore": [],
+      "coal": 0,
+      "batch": null,
+      "mode": "exit",
+      "turn": 0,
+      "ammo": 0,
+      "cooldown": 0,
+      "angle": 0
+    },
+    {
+      "type": "lathe",
+      "x": 30,
+      "y": 10,
+      "dir": 0,
+      "hp": 150,
+      "progress": 0,
+      "item": null,
+      "channels": {
+        "horizontal": null,
+        "vertical": null
+      },
+      "input": [],
+      "recipe": "lathe_iron_rod",
+      "ore": [],
+      "coal": 0,
+      "batch": {
+        "id": "lathe_iron_rod",
+        "machine": "lathe",
+        "input": "iron_ingot",
+        "inputCount": 1,
+        "output": "iron_rod",
+        "outputCount": 2,
+        "seconds": 2,
+        "inputs": {
+          "iron_ingot": 1
+        },
+        "outputs": {
+          "iron_rod": 2
+        },
+        "type": "iron_rod",
+        "time": 1.0000000000000002
+      },
+      "mode": "entrance",
+      "turn": 0,
+      "ammo": 0,
+      "cooldown": 0,
+      "angle": 0
+    },
+    {
+      "type": "wall",
+      "x": 10,
+      "y": 20,
+      "dir": 0,
+      "hp": 190,
+      "progress": 0,
+      "item": null,
+      "channels": {
+        "horizontal": null,
+        "vertical": null
+      },
+      "input": [],
+      "recipe": null,
+      "ore": [],
+      "coal": 0,
+      "batch": null,
+      "mode": "entrance",
+      "turn": 0,
+      "ammo": 0,
+      "cooldown": 0,
+      "angle": 0
+    },
+    {
+      "type": "turret",
+      "x": 20,
+      "y": 20,
+      "dir": 0,
+      "hp": 200,
+      "progress": 0,
+      "item": null,
+      "channels": {
+        "horizontal": null,
+        "vertical": null
+      },
+      "input": [],
+      "recipe": null,
+      "ore": [],
+      "coal": 0,
+      "batch": null,
+      "mode": "entrance",
+      "turn": 0,
+      "ammo": 1,
+      "cooldown": 0,
+      "angle": 0
+    }
+  ],
+  "links": [
+    {
+      "entrance": 660,
+      "exit": 666,
+      "distance": 6,
+      "pipeline": [
+        {
+          "item": {
+            "type": "tin",
+            "from": [-1, 0],
+            "progress": 1,
+            "previousProgress": 0.9090909090909093,
+            "entrySide": 2,
+            "direction": 0,
+            "previousX": 20.90909090909091,
+            "previousY": 10.5
+          },
+          "remaining": 2.3000000000000016
+        }
+      ]
+    }
+  ],
+  "combat": {
+    "enabled": false,
+    "spawnTimer": 0,
+    "nextId": 2,
+    "enemies": [
+      {
+        "id": 1,
+        "x": 10.5,
+        "y": 18.999999999999986,
+        "previousX": 10.5,
+        "previousY": 18.924999999999986,
+        "hp": 50,
+        "maxHp": 50,
+        "path": [
+          [10.5, 18.5],
+          [10.5, 19.5]
+        ],
+        "pathIndex": 1,
+        "attackTimer": 0,
+        "repathAt": 0,
+        "targetId": 1290
+      }
+    ],
+    "projectiles": [],
+    "effects": []
+  }
+}

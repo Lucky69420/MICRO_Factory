@@ -1,9 +1,104 @@
-// Real simulation CPU measurements; render measurements use the mock Canvas harness.
-const fs=require('node:fs'),path=require('node:path'),{boot}=require('./ui.cjs'),current=require('../dist/simulation.js');
-const baselinePath=process.argv[2],baseline=baselinePath?require(path.resolve(baselinePath)):null;
-function fixture(API,n,m,itemCount){const g=new API.Game({seed:'benchmark'});for(let i=0;i<n;i++){const b=g.add('belt',2+i%100,2+Math.floor(i/100),0);if(i%2===0&&itemCount>0){b.item={type:i%4?'iron_plate':'coal',progress:0,from:[-1,0]};itemCount--;g.produced++}}for(let i=0;i<m;i++){const x=2+i%60*2,y=90+Math.floor(i/60)*2;g.deposits.set(g.grid.key(x,y),'iron');g.add(i%2?'bender':'miner',x,y,0)}return g}
-function stats(a){a.sort((a,b)=>a-b);return {meanMs:a.reduce((a,b)=>a+b,0)/a.length,p95Ms:a[Math.floor(a.length*.95)]}}
-function measure(API,n,m,items,old=false){const g=fixture(API,n,m,items);for(let i=0;i<40;i++)g.tick(.05);const times=[];for(let i=0;i<300;i++){const t=performance.now();g.tick(.05);times.push(performance.now()-t)}const sim=stats(times);const u=boot(old?{'simulation.js':baselinePath,'app.js':'/tmp/micro-v05-app.js','art.js':'/tmp/micro-v05-art.js'}:{});u.scope.fixture=fixture(API,n,m,items);u.exec(`Object.assign(game,fixture);cam.x=45;cam.y=${n===100?5:n===1000?8:25};cam.scale=36;`);for(let i=0;i<30;i++)u.exec('render(100)');u.resetCounters();const rt=[];for(let i=0;i<200;i++){const t=performance.now();u.exec('render(100)');rt.push(performance.now()-t)}return {simulation:sim,mockRenderCommandCPU:stats(rt),mockDrawCommandsPerFrame:u.counters().draws/200,graphNodes:g.network?.nodes.size||null,chunkCount:g.grid.chunks?.size||null}}
-const result={method:'Node simulation CPU, same fixtures and 50ms simulation steps in both versions. 40 warmup + 300 measured ticks. Rendering CPU is command preparation using a mock Canvas, NOT browser raster/GPU/FPS. 30 warmup + 200 render calls, 1000x700 viewport at 36px/tile.',scenarios:[]};
-for(const [name,n,m,items] of [['small',100,15,50],['medium',1000,75,500],['large',5000,220,2000]]){const previous=baseline?measure(baseline,n,m,items,true):null,next=measure(current,n,m,items);result.scenarios.push({name,belts:n,machines:m,initialMovingItems:items,baseline:previous,current:next});console.log(name+': '+next.simulation.meanMs.toFixed(3)+' ms/tick; '+next.mockRenderCommandCPU.meanMs.toFixed(3)+' ms mock render'+(previous?'; baseline '+previous.simulation.meanMs.toFixed(3)+' ms/tick':''))}
-fs.writeFileSync(path.join(__dirname,'benchmark-results.json'),JSON.stringify(result,null,2)+'\n');
+(async () => {
+  // Real simulation CPU measurements; render measurements use the mock Canvas harness.
+  const fs = require("node:fs"),
+    path = require("node:path"),
+    { boot } = require("./ui.cjs"),
+    current = require("../src/core/index.js");
+
+  function fixture(API, n, m, itemCount) {
+    const g = new API.Game({ seed: "benchmark" });
+    for (let i = 0; i < n; i++) {
+      const b = g.add("belt", 2 + (i % 100), 2 + Math.floor(i / 100), 0);
+      if (i % 2 === 0 && itemCount > 0) {
+        b.item = {
+          type: i % 4 ? "iron_plate" : "coal",
+          progress: 0,
+          from: [-1, 0],
+        };
+        itemCount--;
+        g.produced++;
+      }
+    }
+    for (let i = 0; i < m; i++) {
+      const x = 2 + (i % 60) * 2,
+        y = 90 + Math.floor(i / 60) * 2;
+      g.deposits.set(g.grid.key(x, y), "iron");
+      g.add(i % 2 ? "bender" : "miner", x, y, 0);
+    }
+    return g;
+  }
+  function stats(a) {
+    a.sort((a, b) => a - b);
+    return {
+      meanMs: a.reduce((a, b) => a + b, 0) / a.length,
+      p95Ms: a[Math.floor(a.length * 0.95)],
+    };
+  }
+  async function measure(API, n, m, items) {
+    const g = fixture(API, n, m, items);
+    for (let i = 0; i < 40; i++) g.tick(0.05);
+    const times = [];
+    for (let i = 0; i < 300; i++) {
+      const t = performance.now();
+      g.tick(0.05);
+      times.push(performance.now() - t);
+    }
+    const sim = stats(times);
+    const u = await boot();
+    u.scope.fixture = fixture(API, n, m, items);
+    u.exec(
+      `Object.assign(game,fixture);cam.x=45;cam.y=${n === 100 ? 5 : n === 1000 ? 8 : 25};cam.scale=36;`,
+    );
+    for (let i = 0; i < 30; i++) u.exec("render(100)");
+    u.resetCounters();
+    const rt = [];
+    for (let i = 0; i < 200; i++) {
+      const t = performance.now();
+      u.exec("render(100)");
+      rt.push(performance.now() - t);
+    }
+    return {
+      simulation: sim,
+      mockRenderCommandCPU: stats(rt),
+      mockDrawCommandsPerFrame: u.counters().draws / 200,
+      graphNodes: g.network?.nodes.size || null,
+      chunkCount: g.grid.chunks?.size || null,
+    };
+  }
+  const result = {
+    method:
+      "Node simulation CPU, same fixtures and 50ms simulation steps in both versions. 40 warmup + 300 measured ticks. Rendering CPU is command preparation using a mock Canvas, NOT browser raster/GPU/FPS. 30 warmup + 200 render calls, 1000x700 viewport at 36px/tile.",
+    scenarios: [],
+  };
+  for (const [name, n, m, items] of [
+    ["small", 100, 15, 50],
+    ["medium", 1000, 75, 500],
+    ["large", 5000, 220, 2000],
+  ]) {
+    const next = await measure(current, n, m, items);
+    result.scenarios.push({
+      name,
+      belts: n,
+      machines: m,
+      initialMovingItems: items,
+
+      current: next,
+    });
+    console.log(
+      name +
+        ": " +
+        next.simulation.meanMs.toFixed(3) +
+        " ms/tick; " +
+        next.mockRenderCommandCPU.meanMs.toFixed(3) +
+        " ms mock render",
+    );
+  }
+  fs.mkdirSync("test-results", { recursive: true });
+  fs.writeFileSync(
+    path.join(__dirname, "../test-results/benchmark-results.json"),
+    JSON.stringify(result, null, 2) + "\n",
+  );
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

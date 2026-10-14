@@ -1,0 +1,6 @@
+dist/
+node_modules/
+public/assets/
+public/licenses/
+package-lock.json
+tests/*results.json

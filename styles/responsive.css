@@ -1,0 +1,63 @@
+#debug-overlay {
+  position: absolute;
+  left: 14px;
+  top: 94px;
+  background: #171d24e6;
+  padding: 9px;
+  font:
+    10px/1.5 ui-monospace,
+    monospace;
+  color: #b5c6d5;
+  pointer-events: none;
+  z-index: 4;
+}
+button[aria-pressed="true"] {
+  border-color: #9fb4c2;
+}
+@media (max-width: 600px) {
+  .brand {
+    display: none;
+  }
+  .toolbar {
+    left: 8px;
+    right: 8px;
+    top: 8px;
+  }
+  .map-actions {
+    top: 8px;
+    left: 8px;
+  }
+  #build-palette {
+    left: 8px;
+    bottom: 8px;
+    max-width: calc(100% - 16px);
+  }
+  .category-tabs button {
+    padding: 5px;
+    font-size: 9px;
+  }
+  .build {
+    width: 37px;
+    height: 37px;
+  }
+  .build img {
+    width: 27px;
+    height: 27px;
+  }
+  .building-panel {
+    right: 8px;
+    top: 49px;
+    width: 235px;
+  }
+  #toast {
+    top: 49px;
+    max-width: 90%;
+  }
+  .binding-grid {
+    grid-template-columns: 1fr;
+  }
+  #drag-summary {
+    bottom: 125px;
+    left: 8px;
+  }
+}

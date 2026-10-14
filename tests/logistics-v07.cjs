@@ -1,23 +1,168 @@
-const assert=require('node:assert/strict'),{Game,CONFIG,START_INVENTORY}=require('./flat-fixture.cjs'),{paths,sample}=require('../dist/belt-geometry.js');
-const p=(g,t,x,y,d=0)=>{assert.equal(g.place(t,x,y,d),'');return g.grid.get(x,y)};const put=(g,b,t,from)=>{assert(g.accept(b,t,from));g.produced++};const run=(g,t)=>{for(let i=0;i<Math.round(t/CONFIG.step);i++)g.tick()};const sum=o=>Object.values(o).reduce((a,b)=>a+b,0),check=g=>assert.equal(sum(START_INVENTORY)+g.produced+g.convertedGain,sum(g.stock)+g.spent+g.inventory()+g.fuelConsumed+g.discarded);
+const assert = require("node:assert/strict"),
+  { Game, CONFIG, START_INVENTORY } = require("./flat-fixture.cjs"),
+  { paths, sample } = require("../src/logistics/BeltGeometry.js");
+const p = (g, t, x, y, d = 0) => {
+  assert.equal(g.place(t, x, y, d), "");
+  return g.grid.get(x, y);
+};
+const put = (g, b, t, from) => {
+  assert(g.accept(b, t, from));
+  g.produced++;
+};
+const run = (g, t) => {
+  for (let i = 0; i < Math.round(t / CONFIG.step); i++) g.tick();
+};
+const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0),
+  check = (g) =>
+    assert.equal(
+      sum(START_INVENTORY) + g.produced + g.convertedGain,
+      sum(g.stock) + g.spent + g.inventory() + g.fuelConsumed + g.discarded,
+    );
 // Adjacent junctions permit straight instant transport.
-let g=new Game({creative:true});const inbelt=p(g,'belt',9,10),j=p(g,'junction',10,10);p(g,'junction',11,10);p(g,'belt',12,10);put(g,inbelt,'coal',[8,10]);run(g,2);assert.equal(inbelt.item,null);assert.equal(g.grid.get(12,10).item.type,'coal');assert.equal(j.channels.horizontal,null);assert(g.canAccept(j,'coal',[11,10],g.grid.get(11,10)));check(g);
+let g = new Game({ creative: true });
+const inbelt = p(g, "belt", 9, 10),
+  j = p(g, "junction", 10, 10);
+p(g, "junction", 11, 10);
+p(g, "belt", 12, 10);
+put(g, inbelt, "coal", [8, 10]);
+run(g, 2);
+assert.equal(inbelt.item, null);
+assert.equal(g.grid.get(12, 10).item.type, "coal");
+assert.equal(j.channels.horizontal, null);
+assert(g.canAccept(j, "coal", [11, 10], g.grid.get(11, 10)));
+check(g);
 // Independent straight channels cross; one blocked destination leaves its source intact.
-g=new Game({creative:true});const cross=p(g,'junction',10,10),west=p(g,'belt',9,10),north=p(g,'belt',10,9,1),east=p(g,'belt',11,10),south=p(g,'belt',10,11,1);put(g,east,'copper',[10,10]);put(g,west,'coal',[8,10]);put(g,north,'iron',[10,8]);run(g,.7);assert.equal(south.item.type,'iron');assert.equal(west.item,null);assert.equal(cross.channels.horizontal.type,'coal');check(g);
+g = new Game({ creative: true });
+const cross = p(g, "junction", 10, 10),
+  west = p(g, "belt", 9, 10),
+  north = p(g, "belt", 10, 9, 1),
+  east = p(g, "belt", 11, 10),
+  south = p(g, "belt", 10, 11, 1);
+put(g, east, "copper", [10, 10]);
+put(g, west, "coal", [8, 10]);
+put(g, north, "iron", [10, 8]);
+run(g, 0.7);
+assert.equal(south.item.type, "iron");
+assert.equal(west.item, null);
+assert.equal(cross.channels.horizontal.type, "coal");
+check(g);
 // Router-only chains traverse instantly with empty outlets.
-g=new Game({creative:true});const routers=[p(g,'router',10,10),p(g,'router',11,10),p(g,'router',12,10)],out=p(g,'belt',13,10);put(g,routers[0],'tin_wire',[9,10]);g.tick();assert(routers.every(b=>!b.item));assert.equal(out.item.type,'tin_wire');check(g);
+g = new Game({ creative: true });
+const routers = [
+    p(g, "router", 10, 10),
+    p(g, "router", 11, 10),
+    p(g, "router", 12, 10),
+  ],
+  out = p(g, "belt", 13, 10);
+put(g, routers[0], "tin_wire", [9, 10]);
+g.tick();
+assert(routers.every((b) => !b.item));
+assert.equal(out.item.type, "tin_wire");
+check(g);
 // Alternating lines commit once to the end; internal nodes never hold temporary resources.
-g=new Game({creative:true});const belt=p(g,'belt',9,10);for(let x=10;x<=14;x++)p(g,x%2?'junction':'router',x,10);const dest=p(g,'belt',15,10);put(g,belt,'copper_foil',[8,10]);belt.item.progress=1;g.tick();assert.equal(dest.item.type,'copper_foil');assert.equal(belt.item,null);for(let x=10;x<=14;x++){const b=g.grid.get(x,10);assert.equal(g.contents(b),0)}check(g);
+g = new Game({ creative: true });
+const belt = p(g, "belt", 9, 10);
+for (let x = 10; x <= 14; x++) p(g, x % 2 ? "junction" : "router", x, 10);
+const dest = p(g, "belt", 15, 10);
+put(g, belt, "copper_foil", [8, 10]);
+belt.item.progress = 1;
+g.tick();
+assert.equal(dest.item.type, "copper_foil");
+assert.equal(belt.item, null);
+for (let x = 10; x <= 14; x++) {
+  const b = g.grid.get(x, 10);
+  assert.equal(g.contents(b), 0);
+}
+check(g);
 // Full terminal belt: no partial movement or changing the source's routing metadata.
-g=new Game({creative:true});const source=p(g,'router',10,10);p(g,'junction',11,10);p(g,'router',12,10);const full=p(g,'belt',13,10);put(g,source,'coal',[9,10]);put(g,full,'iron',[12,10]);const before=JSON.stringify(source.item),turn=source.turn;g.tick();assert.equal(source.item,null);assert.equal(g.grid.get(11,10).channels.horizontal.type,'coal');assert.equal(g.grid.get(12,10).item,null);assert.equal(full.item.type,'iron');check(g);
+g = new Game({ creative: true });
+const source = p(g, "router", 10, 10);
+p(g, "junction", 11, 10);
+p(g, "router", 12, 10);
+const full = p(g, "belt", 13, 10);
+put(g, source, "coal", [9, 10]);
+put(g, full, "iron", [12, 10]);
+const _before = JSON.stringify(source.item),
+  _turn = source.turn;
+g.tick();
+assert.equal(source.item, null);
+assert.equal(g.grid.get(11, 10).channels.horizontal.type, "coal");
+assert.equal(g.grid.get(12, 10).item, null);
+assert.equal(full.item.type, "iron");
+check(g);
 // Blocked branch is skipped and successful choices advance round robin.
-g=new Game({creative:true});const r=p(g,'router',10,10);p(g,'junction',11,10);p(g,'router',12,10);const blocked=p(g,'belt',13,10),alt=p(g,'belt',10,11,1);put(g,blocked,'iron',[12,10]);put(g,r,'coal',[9,10]);g.tick();assert.equal(alt.item.type,'coal');check(g);
+g = new Game({ creative: true });
+const r = p(g, "router", 10, 10);
+p(g, "junction", 11, 10);
+p(g, "router", 12, 10);
+const blocked = p(g, "belt", 13, 10),
+  alt = p(g, "belt", 10, 11, 1);
+put(g, blocked, "iron", [12, 10]);
+put(g, r, "coal", [9, 10]);
+g.tick();
+assert.equal(alt.item.type, "coal");
+check(g);
 // Underground and processing still take real time after the instant line.
-g=new Game({creative:true});const r0=p(g,'router',10,10);p(g,'junction',11,10);p(g,'router',12,10);assert.equal(g.placePair(13,10,17,10,0),'');put(g,r0,'iron',[9,10]);g.tick();assert.equal(g.grid.get(13,10).item.type,'iron');assert.equal(g.grid.get(17,10).item,null);run(g,1);assert.equal(g.grid.get(17,10).item,null);run(g,1.5);assert.equal(g.grid.get(17,10).item.type,'iron');check(g);
+g = new Game({ creative: true });
+const r0 = p(g, "router", 10, 10);
+p(g, "junction", 11, 10);
+p(g, "router", 12, 10);
+assert.equal(g.placePair(13, 10, 17, 10, 0), "");
+put(g, r0, "iron", [9, 10]);
+g.tick();
+assert.equal(g.grid.get(13, 10).item.type, "iron");
+assert.equal(g.grid.get(17, 10).item, null);
+run(g, 1);
+assert.equal(g.grid.get(17, 10).item, null);
+run(g, 1.5);
+assert.equal(g.grid.get(17, 10).item.type, "iron");
+check(g);
 // Long logical traversal is iterative and uncapped; no recursive JS stack growth.
-g=new Game({creative:true,width:4010,depositSettings:{patchesPer10000:0}});for(let x=2;x<=4002;x++)p(g,x%2?'junction':'router',x,10);const last=p(g,'belt',4003,10);put(g,g.grid.get(2,10),'coal',[1,10]);g.tick();assert.equal(last.item.type,'coal');check(g);
+g = new Game({
+  creative: true,
+  width: 4010,
+  depositSettings: { patchesPer10000: 0 },
+});
+for (let x = 2; x <= 4002; x++) p(g, x % 2 ? "junction" : "router", x, 10);
+const last = p(g, "belt", 4003, 10);
+put(g, g.grid.get(2, 10), "coal", [1, 10]);
+g.tick();
+assert.equal(last.item.type, "coal");
+check(g);
 // Cached geometry changes with topology; all four corners are continuous arcs.
-for(let exit=0;exit<4;exit++)for(const entry of [(exit+1)%4,(exit+3)%4]){g=new Game({creative:true});const D=[[1,0],[0,1],[-1,0],[0,-1]],center=p(g,'belt',10,10,exit),e=D[entry],z=D[exit];p(g,'belt',10+e[0],10+e[1],(entry+2)%4);p(g,'belt',10+z[0],10+z[1],exit);assert.equal(center.beltShape,'curve');assert.equal(center.beltMask,(1<<entry)|(1<<exit));const start=sample(entry,exit,0),end=sample(entry,exit,1),middle=sample(entry,exit,.5);assert(Math.abs(start[0]-(.5+e[0]*.5))<1e-6);assert(Math.abs(end[1]-(.5+z[1]*.5))<1e-6);assert(Math.hypot(middle[0]-.5,middle[1]-.5)>.2);assert.equal(paths[entry*4+exit].length,Math.PI/4);g.destroy(g.grid.get(10+z[0],10+z[1]));assert.equal(center.beltShape,'endpoint')}
+for (let exit = 0; exit < 4; exit++)
+  for (const entry of [(exit + 1) % 4, (exit + 3) % 4]) {
+    g = new Game({ creative: true });
+    const D = [
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+        [0, -1],
+      ],
+      center = p(g, "belt", 10, 10, exit),
+      e = D[entry],
+      z = D[exit];
+    p(g, "belt", 10 + e[0], 10 + e[1], (entry + 2) % 4);
+    p(g, "belt", 10 + z[0], 10 + z[1], exit);
+    assert.equal(center.beltShape, "curve");
+    assert.equal(center.beltMask, (1 << entry) | (1 << exit));
+    const start = sample(entry, exit, 0),
+      end = sample(entry, exit, 1),
+      middle = sample(entry, exit, 0.5);
+    assert(Math.abs(start[0] - (0.5 + e[0] * 0.5)) < 1e-6);
+    assert(Math.abs(end[1] - (0.5 + z[1] * 0.5)) < 1e-6);
+    assert(Math.hypot(middle[0] - 0.5, middle[1] - 0.5) > 0.2);
+    assert.equal(paths[entry * 4 + exit].length, Math.PI / 4);
+    g.destroy(g.grid.get(10 + z[0], 10 + z[1]));
+    assert.equal(center.beltShape, "endpoint");
+  }
 // An incompatible mining input never produces a fake conveyor connection.
-g=new Game({creative:true});g.deposits.set(g.grid.key(11,10),'iron');const b=p(g,'belt',10,10);p(g,'miner',11,10,0);assert.equal(b.beltOutputMask,0);assert.equal(b.beltShape,'endpoint');
-console.log('PASS: adjacent junctions, independent channels, instant router chains, atomic alternating chains, blocked/fallback routes, 4,001-node traversal, underground timing, cached connected sprites and all arc orientations.');
+g = new Game({ creative: true });
+g.deposits.set(g.grid.key(11, 10), "iron");
+const b = p(g, "belt", 10, 10);
+p(g, "miner", 11, 10, 0);
+assert.equal(b.beltOutputMask, 0);
+assert.equal(b.beltShape, "endpoint");
+console.log(
+  "PASS: adjacent junctions, independent channels, instant router chains, atomic alternating chains, blocked/fallback routes, 4,001-node traversal, underground timing, cached connected sprites and all arc orientations.",
+);
