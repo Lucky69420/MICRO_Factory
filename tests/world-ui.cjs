@@ -1,13 +1,101 @@
-const assert=require('node:assert/strict'),{boot}=require('./ui.cjs');const u=boot(),{elements:e,exec,frame}=u;
-frame(1000);frame(1050);e['settings-button'].onclick();assert.equal(e['world-seed'].textContent,exec('game.seed'));assert(!exec('settings.debug'));e['new-world-button'].onclick();assert(e['new-world-dialog'].open);const oldGame=exec('game'),oldSeed=exec('game.seed');e['seed-input'].value='unchanged';e['cancel-world'].onclick();assert.equal(exec('game'),oldGame);assert.equal(exec('game.seed'),oldSeed);
-e['grid-toggle'].checked=false;e['grid-toggle'].onchange();e['new-world-button'].onclick();e['random-seed'].onclick();assert(e['seed-input'].value.length>0);e['seed-input'].value='my-custom-seed';e['confirm-world'].onclick();assert.notEqual(exec('game'),oldGame);assert.equal(exec('game.seed'),'my-custom-seed');assert.equal(exec('game.entities.size'),1);assert.equal(exec('game.network.active.size'),0);assert.equal(exec('game.stock.iron_ingot'),100);assert.equal(exec('game.truck.state'),'loading');assert.equal(exec('settings.showGrid'),false);assert(!e['new-world-dialog'].open);assert(!e['settings-dialog'].open);
-// Identical seed resets produce identical ore; pause freezes logic while rendering advances.
-const snapshot=JSON.stringify(exec('[...game.deposits].sort((a,b)=>a[0]-b[0])'));e['new-world-button'].onclick();e['seed-input'].value='my-custom-seed';e['confirm-world'].onclick();assert.equal(JSON.stringify(exec('[...game.deposits].sort((a,b)=>a[0]-b[0])')),snapshot);frame(2000);e.pause.onclick();const time=exec('game.time');u.resetCounters();frame(2200);frame(2400);assert.equal(exec('game.time'),time);assert(u.counters().draws>0);e.pause.onclick();frame(2450);assert(exec('game.time')>time);
-// Smooth interpolated coordinates between ticks, including transfer continuity.
-exec("game.place('belt',80,115);game.place('belt',81,115);game.accept(game.grid.get(80,115),'coal',[79,115]);game.tick(.05)");assert(exec("game.grid.get(80,115).item.previousX<game.grid.get(80,115).x+.5"));exec('clock.reset()');frame(2475);assert(exec('clock.alpha')>0&&exec('clock.alpha')<1);
-e['debug-toggle'].checked=true;e['debug-toggle'].onchange();assert.equal(e['debug-overlay'].hidden,false);frame(4000);assert(e['debug-overlay'].textContent.includes('TPS'));assert(e['debug-overlay'].textContent.includes('Chunks'));assert(e['debug-overlay'].textContent.includes('Graph nodes'));e['debug-toggle'].checked=false;e['debug-toggle'].onchange();assert(e['debug-overlay'].hidden);
-// A far-off truck is not submitted to Canvas rendering.
-exec('cam.x=10;cam.y=10');u.resetCounters();exec('render(5)');assert(u.counters().draws<500);
-// Tab suspension drops elapsed wall time and does not catch up on return.
-u.scope.document.hidden=true;u.events.visibilitychange();const beforeHide=exec('game.time');frame(9000);frame(19000);assert.equal(exec('game.time'),beforeHide);u.scope.document.hidden=false;u.events.visibilitychange();frame(20000);assert.equal(exec('game.time'),beforeHide);frame(20050);assert.equal(exec('game.time'),beforeHide+.05);
-console.log('PASS: seed entry/random/confirmation/cancel, complete reset, settings preservation, deterministic restart, pause/render separation, interpolation, optional debug overlay and far-off culling.');
+(async () => {
+  const assert = require("node:assert/strict"),
+    { boot } = require("./ui.cjs");
+  const u = await boot(),
+    { elements: e, exec, frame } = u;
+  frame(1000);
+  frame(1050);
+  e["settings-button"].onclick();
+  assert.equal(e["world-seed"].textContent, exec("game.seed"));
+  assert(!exec("settings.debug"));
+  e["new-world-button"].onclick();
+  assert(e["new-world-dialog"].open);
+  const oldGame = exec("game"),
+    oldSeed = exec("game.seed");
+  e["seed-input"].value = "unchanged";
+  e["cancel-world"].onclick();
+  assert.equal(exec("game"), oldGame);
+  assert.equal(exec("game.seed"), oldSeed);
+  e["grid-toggle"].checked = false;
+  e["grid-toggle"].onchange();
+  e["new-world-button"].onclick();
+  e["random-seed"].onclick();
+  assert(e["seed-input"].value.length > 0);
+  e["seed-input"].value = "my-custom-seed";
+  e["confirm-world"].onclick();
+  assert.notEqual(exec("game"), oldGame);
+  assert.equal(exec("game.seed"), "my-custom-seed");
+  assert.equal(exec("game.entities.size"), 1);
+  assert.equal(exec("game.network.active.size"), 0);
+  assert.equal(exec("game.stock.iron_ingot"), 100);
+  assert.equal(exec("game.truck.state"), "loading");
+  assert.equal(exec("settings.showGrid"), false);
+  assert(!e["new-world-dialog"].open);
+  assert(!e["settings-dialog"].open);
+  // Identical seed resets produce identical ore; pause freezes logic while rendering advances.
+  const snapshot = JSON.stringify(
+    exec("[...game.deposits].sort((a,b)=>a[0]-b[0])"),
+  );
+  e["new-world-button"].onclick();
+  e["seed-input"].value = "my-custom-seed";
+  e["confirm-world"].onclick();
+  assert.equal(
+    JSON.stringify(exec("[...game.deposits].sort((a,b)=>a[0]-b[0])")),
+    snapshot,
+  );
+  frame(2000);
+  e.pause.onclick();
+  const time = exec("game.time");
+  u.resetCounters();
+  frame(2200);
+  frame(2400);
+  assert.equal(exec("game.time"), time);
+  assert(u.counters().draws > 0);
+  e.pause.onclick();
+  frame(2450);
+  assert(exec("game.time") > time);
+  // Smooth interpolated coordinates between ticks, including transfer continuity.
+  exec(
+    "game.place('belt',80,115);game.place('belt',81,115);game.accept(game.grid.get(80,115),'coal',[79,115]);game.tick(.05)",
+  );
+  assert(
+    exec("game.grid.get(80,115).item.previousX<game.grid.get(80,115).x+.5"),
+  );
+  exec("clock.reset()");
+  frame(2475);
+  assert(exec("clock.alpha") > 0 && exec("clock.alpha") < 1);
+  e["debug-toggle"].checked = true;
+  e["debug-toggle"].onchange();
+  assert.equal(e["debug-overlay"].hidden, false);
+  frame(4000);
+  assert(e["debug-overlay"].textContent.includes("TPS"));
+  assert(e["debug-overlay"].textContent.includes("Chunks"));
+  assert(e["debug-overlay"].textContent.includes("Graph nodes"));
+  e["debug-toggle"].checked = false;
+  e["debug-toggle"].onchange();
+  assert(e["debug-overlay"].hidden);
+  // A far-off truck is not submitted to Canvas rendering.
+  exec("cam.x=10;cam.y=10");
+  u.resetCounters();
+  exec("render(5)");
+  assert(u.counters().draws < 500);
+  // Tab suspension drops elapsed wall time and does not catch up on return.
+  u.scope.document.hidden = true;
+  u.events.visibilitychange();
+  const beforeHide = exec("game.time");
+  frame(9000);
+  frame(19000);
+  assert.equal(exec("game.time"), beforeHide);
+  u.scope.document.hidden = false;
+  u.events.visibilitychange();
+  frame(20000);
+  assert.equal(exec("game.time"), beforeHide);
+  frame(20050);
+  assert.equal(exec("game.time"), beforeHide + 0.05);
+  console.log(
+    "PASS: seed entry/random/confirmation/cancel, complete reset, settings preservation, deterministic restart, pause/render separation, interpolation, optional debug overlay and far-off culling.",
+  );
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

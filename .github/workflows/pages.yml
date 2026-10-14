@@ -18,9 +18,17 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v6
-      - name: Verify logistics, production and regressions
-        run: |
-          for test in tests/*.cjs; do node "$test" || exit 1; done
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Verify source and build static game
+        run: npm run check
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify browser compatibility before deployment
+        run: npm run test:browser
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload game

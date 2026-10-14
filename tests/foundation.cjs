@@ -1,22 +1,191 @@
-const assert=require('node:assert/strict'),{Game,CONFIG,FixedClock,BUILDINGS,RECIPES,START_INVENTORY}=require('./flat-fixture.cjs');
-const run=(g,t)=>{for(let i=0;i<Math.round(t/CONFIG.step);i++)g.tick(CONFIG.step)};const total=o=>Object.values(o).reduce((a,b)=>a+b,0);const conserved=g=>assert.equal(total(START_INVENTORY)+g.produced+g.convertedGain,total(g.stock)+g.spent+g.inventory()+g.fuelConsumed+g.discarded);
-function p(g,t,x,y,d=0){assert.equal(g.place(t,x,y,d),'');return g.grid.get(x,y)}
-function depositSnapshot(g){return [...g.deposits].sort((a,b)=>a[0]-b[0])}
-for(const seed of ['hello','0','Estonia','12345']){const a=new Game({seed}),b=new Game({seed});assert.deepEqual(depositSnapshot(a),depositSnapshot(b));assert(a.depositPatches.length>35);for(const type of ['iron','coal','copper','tin'])assert(a.depositPatches.some(p=>p.type===type));for(let y=125;y<150;y++)for(let x=73;x<76;x++)assert(!a.deposits.has(a.grid.key(x,y)));assert.equal(a.deposits.get(a.grid.key(69,125)),'iron');assert.equal(a.deposits.get(a.grid.key(69,131)),'coal');assert(a.depositPatches.find(p=>p.type==='copper').x>85)}
-assert.notDeepEqual(depositSnapshot(new Game({seed:'a'})),depositSnapshot(new Game({seed:'b'})));assert.equal(CONFIG.step,.05);
+const assert = require("node:assert/strict"),
+  {
+    Game,
+    CONFIG,
+    FixedClock,
+    BUILDINGS,
+    RECIPES,
+    START_INVENTORY,
+  } = require("./flat-fixture.cjs");
+const run = (g, t) => {
+  for (let i = 0; i < Math.round(t / CONFIG.step); i++) g.tick(CONFIG.step);
+};
+const total = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+const conserved = (g) =>
+  assert.equal(
+    total(START_INVENTORY) + g.produced + g.convertedGain,
+    total(g.stock) + g.spent + g.inventory() + g.fuelConsumed + g.discarded,
+  );
+function p(g, t, x, y, d = 0) {
+  assert.equal(g.place(t, x, y, d), "");
+  return g.grid.get(x, y);
+}
+function depositSnapshot(g) {
+  return [...g.deposits].sort((a, b) => a[0] - b[0]);
+}
+for (const seed of ["hello", "0", "Estonia", "12345"]) {
+  const a = new Game({ seed }),
+    b = new Game({ seed });
+  assert.deepEqual(depositSnapshot(a), depositSnapshot(b));
+  assert(a.depositPatches.length > 35);
+  for (const type of ["iron", "coal", "copper", "tin"])
+    assert(a.depositPatches.some((p) => p.type === type));
+  for (let y = 125; y < 150; y++)
+    for (let x = 73; x < 76; x++) assert(!a.deposits.has(a.grid.key(x, y)));
+  assert.equal(a.deposits.get(a.grid.key(69, 125)), "iron");
+  assert.equal(a.deposits.get(a.grid.key(69, 131)), "coal");
+  assert(a.depositPatches.find((p) => p.type === "copper").x > 85);
+}
+assert.notDeepEqual(
+  depositSnapshot(new Game({ seed: "a" })),
+  depositSnapshot(new Game({ seed: "b" })),
+);
+assert.equal(CONFIG.step, 0.05);
 // Map dimensions and chunk boundaries are not tied to 150.
-for(const size of [150,256,512]){const g=new Game({width:size,height:size,seed:'big'});assert.equal(g.depot.y,size-25);assert(g.grid.chunks.size>0);const b=p(g,'smelter',15,15);for(const [x,y] of [[15,15],[16,15],[15,16],[16,16]]){assert.equal(g.grid.get(x,y),b);assert(g.grid.chunkAt(x,y).buildings.has(b))}const found=g.grid.query(16,16,17,17);assert(found.buildings.has(b));g.destroy(b);for(const [x,y] of [[15,15],[16,15],[15,16],[16,16]]){assert(!g.grid.get(x,y));assert(!g.grid.chunkAt(x,y).buildings.has(b))}}
+for (const size of [150, 256, 512]) {
+  const g = new Game({ width: size, height: size, seed: "big" });
+  assert.equal(g.depot.y, size - 25);
+  assert(g.grid.chunks.size > 0);
+  const b = p(g, "smelter", 15, 15);
+  for (const [x, y] of [
+    [15, 15],
+    [16, 15],
+    [15, 16],
+    [16, 16],
+  ]) {
+    assert.equal(g.grid.get(x, y), b);
+    assert(g.grid.chunkAt(x, y).buildings.has(b));
+  }
+  const found = g.grid.query(16, 16, 17, 17);
+  assert(found.buildings.has(b));
+  g.destroy(b);
+  for (const [x, y] of [
+    [15, 15],
+    [16, 15],
+    [15, 16],
+    [16, 16],
+  ]) {
+    assert(!g.grid.get(x, y));
+    assert(!g.grid.chunkAt(x, y).buildings.has(b));
+  }
+}
 // Cached connectivity across chunk boundary, no tile searches during repeated ticks.
-let g=new Game();const a=p(g,'belt',15,10),b=p(g,'belt',16,10);assert.equal(a.itemNode.edges[0].target,b);assert(g.accept(a,'coal',[14,10]));g.produced++;const oldGet=g.grid.get;let lookups=0;g.grid.get=function(...args){lookups++;return oldGet.apply(this,args)};const version=g.network.version,rebuilds=g.network.rebuiltNodes;run(g,.6);assert.equal(b.item.type,'coal');assert.equal(lookups,0);assert.equal(g.network.version,version);assert.equal(g.network.rebuiltNodes,rebuilds);conserved(g);
+let g = new Game();
+const a = p(g, "belt", 15, 10),
+  b = p(g, "belt", 16, 10);
+assert.equal(a.itemNode.edges[0].target, b);
+assert(g.accept(a, "coal", [14, 10]));
+g.produced++;
+const oldGet = g.grid.get;
+let lookups = 0;
+g.grid.get = function (...args) {
+  lookups++;
+  return oldGet.apply(this, args);
+};
+const version = g.network.version,
+  rebuilds = g.network.rebuiltNodes;
+run(g, 0.6);
+assert.equal(b.item.type, "coal");
+assert.equal(lookups, 0);
+assert.equal(g.network.version, version);
+assert.equal(g.network.rebuiltNodes, rebuilds);
+conserved(g);
 // Demolition and rotation invalidate only local connections.
-g.grid.get=oldGet;g.destroy(b);assert.equal(a.itemNode.edges.length,0);const c=p(g,'belt',15,11,1);assert(g.rotateBuilding(a,1));assert.equal(a.itemNode.edges[0].target,c);const isolated=p(g,'belt',50,50);const oldEdges=isolated.itemNode.edges;const prior=g.network.rebuiltNodes;p(g,'belt',17,10);assert.equal(isolated.itemNode.edges,oldEdges);assert(g.network.rebuiltNodes-prior<10);
+g.grid.get = oldGet;
+g.destroy(b);
+assert.equal(a.itemNode.edges.length, 0);
+const c = p(g, "belt", 15, 11, 1);
+assert(g.rotateBuilding(a, 1));
+assert.equal(a.itemNode.edges[0].target, c);
+const isolated = p(g, "belt", 50, 50);
+const oldEdges = isolated.itemNode.edges;
+const prior = g.network.rebuiltNodes;
+p(g, "belt", 17, 10);
+assert.equal(isolated.itemNode.edges, oldEdges);
+assert(g.network.rebuiltNodes - prior < 10);
 // Underground links index both chunks without surface reservations.
-g=new Game();assert.equal(g.placePair(14,20,18,20,0),'');const link=g.grid.get(14,20).connection;assert(g.grid.chunkAt(14,20).underground.has(link));assert(g.grid.chunkAt(18,20).underground.has(link));p(g,'bender',15,20);assert(g.accept(g.grid.get(14,20),'copper_wire',[13,20]));g.produced++;run(g,3);assert.equal(g.grid.get(18,20).item.type,'copper_wire');conserved(g);g.destroy(g.grid.get(18,20));assert(!g.grid.chunkAt(14,20).underground.has(link));assert(!g.grid.chunkAt(18,20).underground.has(link));
+g = new Game();
+assert.equal(g.placePair(14, 20, 18, 20, 0), "");
+const link = g.grid.get(14, 20).connection;
+assert(g.grid.chunkAt(14, 20).underground.has(link));
+assert(g.grid.chunkAt(18, 20).underground.has(link));
+p(g, "bender", 15, 20);
+assert(g.accept(g.grid.get(14, 20), "copper_wire", [13, 20]));
+g.produced++;
+run(g, 3);
+assert.equal(g.grid.get(18, 20).item.type, "copper_wire");
+conserved(g);
+g.destroy(g.grid.get(18, 20));
+assert(!g.grid.chunkAt(14, 20).underground.has(link));
+assert(!g.grid.chunkAt(18, 20).underground.has(link));
 // Idle belts are not scanned as active items; offscreen machines remain live.
-g=new Game({startInventory:{iron_ingot:10000}});for(let x=20;x<120;x++)p(g,'belt',x,20);assert.equal(g.network.active.size,0);g.deposits.set(g.grid.key(100,30),'iron');p(g,'miner',100,30);p(g,'belt',101,30);run(g,5);assert(g.produced>0);
+g = new Game({ startInventory: { iron_ingot: 10000 } });
+for (let x = 20; x < 120; x++) p(g, "belt", x, 20);
+assert.equal(g.network.active.size, 0);
+g.deposits.set(g.grid.key(100, 30), "iron");
+p(g, "miner", 100, 30);
+p(g, "belt", 101, 30);
+run(g, 5);
+assert(g.produced > 0);
 // Fixed accumulator gives the same complete simulation at different render FPS.
-function fps(f){const q=new Game({seed:'fps'});p(q,'miner',69,125);for(let x=70;x<73;x++)p(q,'belt',x,125);const clock=new FixedClock();let ticks=0;for(let i=0;i<f*130;i++)ticks+=clock.advance(1/f,dt=>q.tick(dt));assert.equal(ticks,2600);conserved(q);return [q.produced,q.delivered,q.inventory(),q.stock,q.truck.state]}
-assert.deepEqual(fps(30),fps(60));assert.deepEqual(fps(60),fps(144));const clock=new FixedClock();let count=0;assert.equal(clock.advance(30,()=>count++),5);assert.equal(count,5);assert(clock.dropped>0);assert.equal(clock.advance(1,()=>count++,true),0);assert.equal(clock.alpha,0);clock.reset();assert.equal(clock.advance(.025,()=>count++),0);assert.equal(clock.alpha,.5);
-for(const d of Object.values(BUILDINGS))for(const field of ['id','name','size','maxHp','cost','inputCapacity','outputCapacity','supportedRecipes','processingSpeed','behavior','inputBehavior','outputBehavior','sprite'])assert(d[field]!==undefined,field);for(const r of Object.values(RECIPES))assert(r.inputs&&r.outputs&&r.seconds>0);
-const damaged=new Game(),target=p(damaged,'belt',10,10);damaged.queueDamage(target,30);assert.equal(target.hp,30);damaged.tick();assert(!damaged.grid.get(10,10));
-console.log('PASS: seeded reproducibility/diversity, protected start, 150/256/512 maps, cross-chunk footprints and tunnels, local graph invalidation, zero tick neighbor lookups, active-item indexes, offscreen production, 20 TPS and catch-up safety, data definitions.');
+function fps(f) {
+  const q = new Game({ seed: "fps" });
+  p(q, "miner", 69, 125);
+  for (let x = 70; x < 73; x++) p(q, "belt", x, 125);
+  const clock = new FixedClock();
+  let ticks = 0;
+  for (let i = 0; i < f * 130; i++)
+    ticks += clock.advance(1 / f, (dt) => q.tick(dt));
+  assert.equal(ticks, 2600);
+  conserved(q);
+  return [q.produced, q.delivered, q.inventory(), q.stock, q.truck.state];
+}
+assert.deepEqual(fps(30), fps(60));
+assert.deepEqual(fps(60), fps(144));
+const clock = new FixedClock();
+let count = 0;
+assert.equal(
+  clock.advance(30, () => count++),
+  5,
+);
+assert.equal(count, 5);
+assert(clock.dropped > 0);
+assert.equal(
+  clock.advance(1, () => count++, true),
+  0,
+);
+assert.equal(clock.alpha, 0);
+clock.reset();
+assert.equal(
+  clock.advance(0.025, () => count++),
+  0,
+);
+assert.equal(clock.alpha, 0.5);
+for (const d of Object.values(BUILDINGS))
+  for (const field of [
+    "id",
+    "name",
+    "size",
+    "maxHp",
+    "cost",
+    "inputCapacity",
+    "outputCapacity",
+    "supportedRecipes",
+    "processingSpeed",
+    "behavior",
+    "inputBehavior",
+    "outputBehavior",
+    "sprite",
+  ])
+    assert(d[field] !== undefined, field);
+for (const r of Object.values(RECIPES))
+  assert(r.inputs && r.outputs && r.seconds > 0);
+const damaged = new Game(),
+  target = p(damaged, "belt", 10, 10);
+damaged.queueDamage(target, 30);
+assert.equal(target.hp, 30);
+damaged.tick();
+assert(!damaged.grid.get(10, 10));
+console.log(
+  "PASS: seeded reproducibility/diversity, protected start, 150/256/512 maps, cross-chunk footprints and tunnels, local graph invalidation, zero tick neighbor lookups, active-item indexes, offscreen production, 20 TPS and catch-up safety, data definitions.",
+);

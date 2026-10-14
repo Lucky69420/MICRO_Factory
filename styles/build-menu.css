@@ -1,0 +1,121 @@
+#build-palette {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  z-index: 4;
+  background: #20252bed;
+  border: 1px solid #46505a;
+  border-radius: 6px;
+  padding: 7px;
+  width: max-content;
+  max-width: calc(100% - 28px);
+  box-shadow: 0 5px 25px #0003;
+  backdrop-filter: blur(8px);
+}
+.palette-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 5px;
+  color: #aebac3;
+  font-size: 10px;
+}
+.palette-heading > div {
+  display: flex;
+  gap: 4px;
+}
+.palette-heading button {
+  border: 0;
+  background: transparent;
+  padding: 1px 7px;
+  font-size: 16px;
+}
+.category-tabs {
+  display: flex;
+  gap: 3px;
+}
+.category-tabs button {
+  padding: 5px 8px;
+  border: 0;
+  font-size: 10px;
+  background: transparent;
+  color: #9ba8b1;
+}
+.category-tabs button.active {
+  background: #36434d;
+  color: #dce4eb;
+}
+.category-tabs button:hover {
+  background: #2e373f;
+}
+#palette-grid {
+  display: flex;
+  gap: 4px;
+  margin-top: 7px;
+  flex-wrap: wrap;
+  max-width: 470px;
+}
+.build {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  padding: 5px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: #2a3037;
+}
+.build img {
+  width: 30px;
+  height: 30px;
+  image-rendering: pixelated;
+}
+.build.active {
+  border-color: #aec1cc;
+  background: #3b4954;
+}
+.build.unaffordable {
+  opacity: 0.48;
+}
+.build.active.unaffordable {
+  opacity: 0.75;
+}
+.build kbd {
+  position: absolute;
+  bottom: 1px;
+  right: 3px;
+  font:
+    9px ui-monospace,
+    monospace;
+  color: #c1cbd3;
+  text-shadow: 0 1px 2px #000;
+}
+.demolition-icon {
+  font-size: 28px;
+  color: #c9a0a0;
+}
+.palette-pages {
+  display: flex;
+  justify-content: flex-end;
+  height: 12px;
+  margin-top: 3px;
+  gap: 4px;
+}
+.palette-pages button {
+  border: 0;
+  padding: 0 5px;
+  background: transparent;
+  height: 12px;
+  font-size: 12px;
+}
+#drag-summary {
+  position: absolute;
+  bottom: 135px;
+  left: 14px;
+  font-size: 10px;
+  background: #20252be6;
+  padding: 7px 10px;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 5;
+}

@@ -1,49 +1,480 @@
-const assert=require('node:assert/strict');const fs=require('node:fs');const {Game,CONFIG,START_INVENTORY,FixedClock,RESOURCES}=require('./flat-fixture.cjs');
-const sum=o=>Object.values(o).reduce((a,b)=>a+b,0),check=g=>assert.equal(sum(START_INVENTORY)+g.produced+g.convertedGain,sum(g.stock)+g.spent+g.inventory()+g.fuelConsumed+g.discarded+g.ammoConsumed);
-const run=(g,t)=>{for(let i=0;i<Math.round(t/CONFIG.step);i++)g.tick()};
-const p=(g,t,x,y,d=0)=>{assert.equal(g.place(t,x,y,d),'');return g.grid.get(x,y)};
-const feed=(g,b,t,n=1)=>{for(let i=0;i<n;i++){assert(g.accept(b,t,[b.x-1,b.y]));g.produced++}};
-// Full-rate, fixed-duration, equal-length lines. Latency warms up before counting.
-function throughput(sections,decorate=false){const g=new Game({creative:true});const sink=g.add('depot',45,20,0);sink.queue=[];let starts=new Map(sections),skip=new Set();for(const [x,d] of sections){assert.equal(g.placePair(x,20,x+d,20,0),'');for(let j=x+1;j<x+d;j++)skip.add(j)}for(let x=5;x<45;x++)if(!skip.has(x)&&!g.grid.get(x,20))p(g,'belt',x,20);if(decorate){p(g,'ammo_factory',12,20);p(g,'belt',20,20,1);p(g,'belt',20,21,1);assert.equal(g.placePair(27,18,27,22,1),'')}
- const first=g.grid.get(5,20),received=[];let count=0,maxPipeline=0,submitted=0;for(let i=0;i<1600;i++){if(!first.item)feed(g,first,submitted++%2?'coal':'iron_plate');g.tick();if(i===600)count=received.length;received.push(...sink.queue);g.discarded+=sink.queue.length;sink.queue.length=0;for(const l of g.undergroundLinks)maxPipeline=Math.max(maxPipeline,l.pipeline.length);check(g)}for(let i=1;i<received.length;i++)assert.notEqual(received[i],received[i-1],'FIFO order');return {total:received.length,sustained:received.length-count,maxPipeline}}
-const result={normal:throughput([]),one:throughput([[10,6]]),multiple:throughput([[10,6],[25,6]]),consecutive:throughput([[10,6],[17,6],[24,6]]),underBuildingsCrossings:throughput([[10,6],[18,6],[25,6]],true)};
-for(const [name,r] of Object.entries(result)){assert.equal(r.sustained,result.normal.sustained,name+' sustained throughput');assert(Math.abs(r.total-result.normal.total)<=1,name+' equal latency');if(name!=='normal')assert(r.maxPipeline>1)}fs.writeFileSync('tests/underground-v08-results.json',JSON.stringify(result,null,2));console.log('Underground 50-second measurement after 30-second warmup:',result);
-// Maximum-distance crossing a chunk boundary: fill blocked tunnel then drain losslessly.
-let g=new Game({creative:true});assert.equal(g.placePair(14,20,20,20,0),'');let a=g.grid.get(14,20),exit=g.grid.get(20,20);for(let i=0;i<200;i++){if(!a.item)feed(g,a,'basic_ammo');g.tick();check(g)}assert.equal(g.inventory(),7);assert.equal(a.connection.pipeline.length,5);const turret=p(g,'turret',21,20);run(g,8);assert.equal(turret.ammo,7);assert.equal(g.inventory(),7);assert.equal(a.connection.pipeline.length,0);check(g);
-// Exit → Router → turret and exit → compatible multi-input machine.
-g=new Game({creative:true});assert.equal(g.placePair(14,20,20,20,0),'');const router=p(g,'router',21,20);let gun=p(g,'turret',22,20);feed(g,g.grid.get(14,20),'basic_ammo');run(g,5);assert.equal(gun.ammo,1);assert.equal(router.item,null);check(g);
-g=new Game({creative:true});assert.equal(g.placePair(14,20,20,20,0),'');let factory=p(g,'ammo_factory',21,20);feed(g,g.grid.get(14,20),'coal');run(g,5);assert.deepEqual(factory.input,['coal']);check(g);
-// Demolition of either endpoint accounts for all hidden items once.
-for(const which of ['entrance','exit']){g=new Game({creative:true});assert.equal(g.placePair(14,20,20,20,0),'');a=g.grid.get(14,20);for(let i=0;i<40;i++){if(!a.item)feed(g,a,'basic_ammo');g.tick()}const link=a.connection,n=g.inventory();g.destroy(link[which]);check(g);assert.equal(link.pipeline.length,0);assert.equal(g.inventory()+g.discarded,n)}
-// Multi-input job accepts exact ingredients and blocks new inputs until outputs leave.
-g=new Game({creative:true});factory=p(g,'ammo_factory',10,10);feed(g,factory,'iron_plate',2);run(g,5);assert.equal(factory.batch,null);feed(g,factory,'coal');assert(!g.accept(factory,'iron_ingot',[9,10]));run(g,2);assert.deepEqual(factory.batch.remaining,{basic_ammo:5});assert(!g.accept(factory,'coal',[9,10]));assert.equal(factory.input.length,0);check(g);
-// Real ammunition production → belt → router → turret; creative does not supply ammo.
-g=new Game({creative:true});factory=p(g,'ammo_factory',10,10);p(g,'belt',12,10);p(g,'router',13,10);gun=p(g,'turret',14,10);let enemy=g.combat.spawn(20.5,10.5);run(g,.1);assert.equal(g.ammoConsumed,0);feed(g,factory,'iron_plate',2);feed(g,factory,'coal');run(g,6);assert.equal(g.combat.enemies.size,0);assert.equal(g.ammoConsumed,5);assert.equal(gun.ammo,0);check(g);
-// Empty turret waits and resumes with physical delivery, rejects non-ammo, capacity 50.
-enemy=g.combat.spawn(20.5,10.5);run(g,1);assert.equal(g.ammoConsumed,5);feed(g,factory,'iron_plate',2);feed(g,factory,'coal');run(g,6);assert.equal(g.ammoConsumed,10);assert.equal(g.combat.enemies.size,0);check(g);assert(!g.accept(gun,'coal',[13,10]));feed(g,gun,'basic_ammo',50);assert(!g.accept(gun,'basic_ammo',[13,10]));check(g);
-// No target out of range: no ammo consumption. Nearest target selected and damage at impact.
-g=new Game({creative:true,enemySpeed:0});gun=p(g,'turret',20,20);feed(g,gun,'basic_ammo',10);const far=g.combat.spawn(40,20);run(g,2);assert.equal(g.ammoConsumed,0);const near=g.combat.spawn(24,21),other=g.combat.spawn(27,21);g.tick();assert.equal(gun.target.id,near.id);assert.equal(g.ammoConsumed,1);assert.equal(near.hp,50);assert.equal(g.combat.projectiles.length,1);run(g,.2);assert.equal(near.hp,40);run(g,2.1);assert(!g.combat.enemies.has(near.id));assert(g.combat.enemies.has(other.id));check(g);
-// Projectile lifetime and stale targets do not damage or duplicate.
-g=new Game({creative:true,enemySpeed:0,projectileSpeed:.01,projectileLifetime:.1});gun=p(g,'turret',20,20);feed(g,gun,'basic_ammo');enemy=g.combat.spawn(24,21);run(g,.3);assert.equal(enemy.hp,50);assert.equal(g.combat.projectiles.length,0);check(g);
-// Spawn defaults OFF; cap, disable retains enemies; reserved area and bounded paths.
-g=new Game({creative:true,enemyCap:2});assert.equal(g.combat.enabled,false);run(g,6);assert.equal(g.combat.enemies.size,0);assert(g.validate('belt',g.spawner.x,0).includes('spawner'));for(let y=0;y<3;y++)for(let x=g.spawner.x;x<g.spawner.x+3;x++)assert(!g.deposits.has(g.grid.key(x,y)));g.combat.enabled=true;run(g,16);assert.equal(g.combat.enemies.size,2);g.combat.enabled=false;run(g,6);assert.equal(g.combat.enemies.size,2);const h=g.depot.hp;g.combat.clear();assert.equal(g.depot.hp,h);assert.equal(g.combat.projectiles.length,0);assert.equal(g.combat.enemies.size,0);
-// Navigate around 2x2 footprints, attack obstructing building, destroy logistics cleanly.
-g=new Game({creative:true,enemySpeed:5});const victim=p(g,'belt',20,8);victim.item={type:'coal',progress:0};g.produced++;const wall=p(g,'smelter',19,4);enemy=g.combat.spawn(18.5,4.5);run(g,40);assert(!g.entities.has(wall));assert(!g.grid.get(20,5));assert(![...g.network.nodes].some(n=>n.entity===wall));assert(!g.entities.has(victim));check(g);
-// Recalculate when a cached route is obstructed or target removed.
-g=new Game({creative:true});const target=p(g,'belt',30,10);enemy=g.combat.spawn(25.5,10.5);run(g,.2);assert(enemy.path);const next=enemy.path[enemy.pathIndex];const obstacle=p(g,'belt',Math.floor(next[0]),Math.floor(next[1]));run(g,10);assert(!g.entities.has(obstacle));g.destroy(target);run(g,1);assert.notEqual(enemy.target,target);assert(g.combat.pathNodes<=g.config.pathNodesPerTick);
-// Offscreen/depot damage; no game-over, footprints and graph disappear.
-g=new Game({creative:true,enemyDamage:1000});enemy=g.combat.spawn(g.depot.x-.5,g.depot.y+.5);run(g,2);assert(!g.entities.has(g.depot));assert(!g.grid.get(g.depot.x,g.depot.y));g.tick();check(g);
-// Combat determinism and fixed-clock pause at multiple display frame rates.
-function schedule(fps){const g=new Game({creative:true});const gun=p(g,'turret',20,20);feed(g,gun,'basic_ammo',20);g.combat.spawn(27,21);const clock=new FixedClock;for(let f=0;f<fps*8;f++)clock.advance(1/fps,dt=>g.tick(dt));const before=[g.time,g.ammoConsumed,g.combat.enemies.size,g.combat.projectiles.length];clock.advance(.2,dt=>g.tick(dt),true);assert.deepEqual([g.time,g.ammoConsumed,g.combat.enemies.size,g.combat.projectiles.length],before);check(g);return before}assert.deepEqual(schedule(30),schedule(60));assert.deepEqual(schedule(60),schedule(144));
-console.log('PASS: FIFO throughput parity, multiple/consecutive tunnels, crossings/buildings/chunks, blocked recovery, endpoint destruction, ammo recipe/backpressure/delivery, turrets capacity/range/nearest/impact/exhaustion/resupply, spawning/cap/reservation/clear, bounded paths, destruction, offscreen combat, fixed-rate determinism and pause.');
-// Exact per-ingredient limits leave space for other ingredients.
-g=new Game({creative:true});factory=p(g,'ammo_factory',10,10);feed(g,factory,'coal');assert(!g.accept(factory,'coal',[9,10]));feed(g,factory,'iron_plate',2);run(g,2);assert.equal(factory.batch.remaining.basic_ammo,5);assert.equal(factory.input.length,0);check(g);
-// All directions carry ammunition; one tick never skips underground latency.
-for(let d=0;d<4;d++){g=new Game({creative:true});const [dx,dy]=[[1,0],[0,1],[-1,0],[0,-1]][d];assert.equal(g.placePair(30,30,30+dx*6,30+dy*6,d),'');a=g.grid.get(30,30);assert(g.accept(a,'basic_ammo',[30-dx,30-dy]));g.produced++;g.tick();assert.equal(g.grid.get(30+dx*6,30+dy*6).item,null);run(g,3.3);assert.equal(g.grid.get(30+dx*6,30+dy*6).item.type,'basic_ammo');check(g)}
-// Real UI settings, minimal inspection and pause/offscreen rendering behavior.
-const u=require('./ui.cjs').boot(),{exec,elements:e,click,frame}=u;frame(1000);exec("game.creative=true;game.place('belt',20,20);game.placePair(22,20,28,20);game.place('ammo_factory',30,20);game.place('turret',34,20)");for(const [x,name] of [[20,'Conveyor'],[22,'Underground Conveyor'],[28,'Underground Conveyor']]){click(x,20);frame(1200+x);assert.equal(e['building-name'].textContent,name);assert.equal(e['inspection-body'].hidden,true);assert(e['building-hp'].textContent.includes('HP'))}click(30,20);assert.equal(e['inspection-body'].hidden,false);assert(e['active-recipe'].innerHTML.includes('assets/mindustry/ore-coal1.png'));assert(e['active-recipe'].innerHTML.includes('assets/basic_ammo.svg'));click(34,20);assert(e['building-details'].innerHTML.includes('Ammunition'));assert.equal(e['enemy-toggle'].checked,undefined);e['enemy-toggle'].checked=true;e['enemy-toggle'].onchange();assert.equal(exec('game.combat.enabled'),true);e['enemy-toggle'].checked=false;e['enemy-toggle'].onchange();exec('game.combat.spawn(34,15)');assert.equal(exec('game.combat.enemies.size'),1);e['locate-spawner'].onclick();assert.equal(exec('cam.y'),8);e['clear-enemies'].onclick();assert.equal(exec('game.combat.enemies.size'),0);exec("game.combat.spawn(34,15);game.accept(game.grid.get(34,20),'basic_ammo',[33,20])");frame(2000);e.pause.onclick();const snapshot=exec('JSON.stringify([...game.combat.enemies.values()].map(e=>[e.x,e.y,e.hp,e.attackTimer]))');frame(2200);frame(2400);assert.equal(exec('JSON.stringify([...game.combat.enemies.values()].map(e=>[e.x,e.y,e.hp,e.attackTimer]))'),snapshot);e.pause.onclick();exec('cam.y=125');frame(2450);assert.notEqual(exec('JSON.stringify([...game.combat.enemies.values()].map(e=>[e.x,e.y,e.hp,e.attackTimer]))'),snapshot);
-console.log('PASS: multi-input capacity, ammo in all underground directions, simplified inspection, recipe icons, combat settings/clear/spawner camera, pause and offscreen combat through UI.');
-// Existing direct output ports feed both ingredients without special ammo routing.
-g=new Game({creative:true});const bender=p(g,'bender',10,10);g.deposits.set(g.grid.key(13,12),'coal');const coalMiner=p(g,'miner',13,12,3);factory=p(g,'ammo_factory',12,10);gun=p(g,'turret',14,10);for(let i=0;i<4;i++){feed(g,bender,'iron_ingot');run(g,3)};assert(gun.ammo>=5);check(g);
-// Multiple nearby targets and turrets remain bounded with every enemy active.
-const {performance}=require('node:perf_hooks');g=new Game({creative:true,enemyHp:5000});for(let y=8;y<38;y+=3)for(let x=50;x<80;x+=3){const t=p(g,'turret',x,y);feed(g,t,'basic_ammo',50)}for(let i=0;i<30;i++)g.combat.spawn(50.5+i,3.5);let samples=[];for(let i=0;i<400;i++){const start=performance.now();g.tick();samples.push(performance.now()-start);assert(g.combat.pathNodes<=g.config.pathNodesPerTick);check(g)}samples.sort((a,b)=>a-b);const combatBenchmark={turrets:100,enemies:30,measuredTicks:400,meanMs:samples.reduce((a,b)=>a+b)/samples.length,p95Ms:samples[Math.floor(samples.length*.95)],maxPathNodesPerTick:g.config.pathNodesPerTick};fs.writeFileSync('tests/combat-v08-results.json',JSON.stringify(combatBenchmark,null,2));console.log('Combat benchmark (simulation CPU):',combatBenchmark);
+(async () => {
+  const assert = require("node:assert/strict");
+  const fs = require("node:fs");
+  const {
+    Game,
+    CONFIG,
+    START_INVENTORY,
+    FixedClock,
+    _RESOURCES,
+  } = require("./flat-fixture.cjs");
+  const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0),
+    check = (g) =>
+      assert.equal(
+        sum(START_INVENTORY) + g.produced + g.convertedGain,
+        sum(g.stock) +
+          g.spent +
+          g.inventory() +
+          g.fuelConsumed +
+          g.discarded +
+          g.ammoConsumed,
+      );
+  const run = (g, t) => {
+    for (let i = 0; i < Math.round(t / CONFIG.step); i++) g.tick();
+  };
+  const p = (g, t, x, y, d = 0) => {
+    assert.equal(g.place(t, x, y, d), "");
+    return g.grid.get(x, y);
+  };
+  const feed = (g, b, t, n = 1) => {
+    for (let i = 0; i < n; i++) {
+      assert(g.accept(b, t, [b.x - 1, b.y]));
+      g.produced++;
+    }
+  };
+  // Full-rate, fixed-duration, equal-length lines. Latency warms up before counting.
+  function throughput(sections, decorate = false) {
+    const g = new Game({ creative: true });
+    const sink = g.add("depot", 45, 20, 0);
+    sink.queue = [];
+    let _starts = new Map(sections),
+      skip = new Set();
+    for (const [x, d] of sections) {
+      assert.equal(g.placePair(x, 20, x + d, 20, 0), "");
+      for (let j = x + 1; j < x + d; j++) skip.add(j);
+    }
+    for (let x = 5; x < 45; x++)
+      if (!skip.has(x) && !g.grid.get(x, 20)) p(g, "belt", x, 20);
+    if (decorate) {
+      p(g, "ammo_factory", 12, 20);
+      p(g, "belt", 20, 20, 1);
+      p(g, "belt", 20, 21, 1);
+      assert.equal(g.placePair(27, 18, 27, 22, 1), "");
+    }
+    const first = g.grid.get(5, 20),
+      received = [];
+    let count = 0,
+      maxPipeline = 0,
+      submitted = 0;
+    for (let i = 0; i < 1600; i++) {
+      if (!first.item) feed(g, first, submitted++ % 2 ? "coal" : "iron_plate");
+      g.tick();
+      if (i === 600) count = received.length;
+      received.push(...sink.queue);
+      g.discarded += sink.queue.length;
+      sink.queue.length = 0;
+      for (const l of g.undergroundLinks)
+        maxPipeline = Math.max(maxPipeline, l.pipeline.length);
+      check(g);
+    }
+    for (let i = 1; i < received.length; i++)
+      assert.notEqual(received[i], received[i - 1], "FIFO order");
+    return {
+      total: received.length,
+      sustained: received.length - count,
+      maxPipeline,
+    };
+  }
+  const result = {
+    normal: throughput([]),
+    one: throughput([[10, 6]]),
+    multiple: throughput([
+      [10, 6],
+      [25, 6],
+    ]),
+    consecutive: throughput([
+      [10, 6],
+      [17, 6],
+      [24, 6],
+    ]),
+    underBuildingsCrossings: throughput(
+      [
+        [10, 6],
+        [18, 6],
+        [25, 6],
+      ],
+      true,
+    ),
+  };
+  for (const [name, r] of Object.entries(result)) {
+    assert.equal(
+      r.sustained,
+      result.normal.sustained,
+      name + " sustained throughput",
+    );
+    assert(
+      Math.abs(r.total - result.normal.total) <= 1,
+      name + " equal latency",
+    );
+    if (name !== "normal") assert(r.maxPipeline > 1);
+  }
+  fs.mkdirSync("test-results", { recursive: true });
+  fs.writeFileSync(
+    "test-results/underground-v08-results.json",
+    JSON.stringify(result, null, 2),
+  );
+  console.log(
+    "Underground 50-second measurement after 30-second warmup:",
+    result,
+  );
+  // Maximum-distance crossing a chunk boundary: fill blocked tunnel then drain losslessly.
+  let g = new Game({ creative: true });
+  assert.equal(g.placePair(14, 20, 20, 20, 0), "");
+  let a = g.grid.get(14, 20),
+    _exit = g.grid.get(20, 20);
+  for (let i = 0; i < 200; i++) {
+    if (!a.item) feed(g, a, "basic_ammo");
+    g.tick();
+    check(g);
+  }
+  assert.equal(g.inventory(), 7);
+  assert.equal(a.connection.pipeline.length, 5);
+  const turret = p(g, "turret", 21, 20);
+  run(g, 8);
+  assert.equal(turret.ammo, 7);
+  assert.equal(g.inventory(), 7);
+  assert.equal(a.connection.pipeline.length, 0);
+  check(g);
+  // Exit → Router → turret and exit → compatible multi-input machine.
+  g = new Game({ creative: true });
+  assert.equal(g.placePair(14, 20, 20, 20, 0), "");
+  const router = p(g, "router", 21, 20);
+  let gun = p(g, "turret", 22, 20);
+  feed(g, g.grid.get(14, 20), "basic_ammo");
+  run(g, 5);
+  assert.equal(gun.ammo, 1);
+  assert.equal(router.item, null);
+  check(g);
+  g = new Game({ creative: true });
+  assert.equal(g.placePair(14, 20, 20, 20, 0), "");
+  let factory = p(g, "ammo_factory", 21, 20);
+  feed(g, g.grid.get(14, 20), "coal");
+  run(g, 5);
+  assert.deepEqual(factory.input, ["coal"]);
+  check(g);
+  // Demolition of either endpoint accounts for all hidden items once.
+  for (const which of ["entrance", "exit"]) {
+    g = new Game({ creative: true });
+    assert.equal(g.placePair(14, 20, 20, 20, 0), "");
+    a = g.grid.get(14, 20);
+    for (let i = 0; i < 40; i++) {
+      if (!a.item) feed(g, a, "basic_ammo");
+      g.tick();
+    }
+    const link = a.connection,
+      n = g.inventory();
+    g.destroy(link[which]);
+    check(g);
+    assert.equal(link.pipeline.length, 0);
+    assert.equal(g.inventory() + g.discarded, n);
+  }
+  // Multi-input job accepts exact ingredients and blocks new inputs until outputs leave.
+  g = new Game({ creative: true });
+  factory = p(g, "ammo_factory", 10, 10);
+  feed(g, factory, "iron_plate", 2);
+  run(g, 5);
+  assert.equal(factory.batch, null);
+  feed(g, factory, "coal");
+  assert(!g.accept(factory, "iron_ingot", [9, 10]));
+  run(g, 2);
+  assert.deepEqual(factory.batch.remaining, { basic_ammo: 5 });
+  assert(!g.accept(factory, "coal", [9, 10]));
+  assert.equal(factory.input.length, 0);
+  check(g);
+  // Real ammunition production → belt → router → turret; creative does not supply ammo.
+  g = new Game({ creative: true });
+  factory = p(g, "ammo_factory", 10, 10);
+  p(g, "belt", 12, 10);
+  p(g, "router", 13, 10);
+  gun = p(g, "turret", 14, 10);
+  let enemy;
+  g.combat.spawn(20.5, 10.5);
+  run(g, 0.1);
+  assert.equal(g.ammoConsumed, 0);
+  feed(g, factory, "iron_plate", 2);
+  feed(g, factory, "coal");
+  run(g, 6);
+  assert.equal(g.combat.enemies.size, 0);
+  assert.equal(g.ammoConsumed, 5);
+  assert.equal(gun.ammo, 0);
+  check(g);
+  // Empty turret waits and resumes with physical delivery, rejects non-ammo, capacity 50.
+  g.combat.spawn(20.5, 10.5);
+  run(g, 1);
+  assert.equal(g.ammoConsumed, 5);
+  feed(g, factory, "iron_plate", 2);
+  feed(g, factory, "coal");
+  run(g, 6);
+  assert.equal(g.ammoConsumed, 10);
+  assert.equal(g.combat.enemies.size, 0);
+  check(g);
+  assert(!g.accept(gun, "coal", [13, 10]));
+  feed(g, gun, "basic_ammo", 50);
+  assert(!g.accept(gun, "basic_ammo", [13, 10]));
+  check(g);
+  // No target out of range: no ammo consumption. Nearest target selected and damage at impact.
+  g = new Game({ creative: true, enemySpeed: 0 });
+  gun = p(g, "turret", 20, 20);
+  feed(g, gun, "basic_ammo", 10);
+  const _far = g.combat.spawn(40, 20);
+  run(g, 2);
+  assert.equal(g.ammoConsumed, 0);
+  const near = g.combat.spawn(24, 21),
+    other = g.combat.spawn(27, 21);
+  g.tick();
+  assert.equal(gun.target.id, near.id);
+  assert.equal(g.ammoConsumed, 1);
+  assert.equal(near.hp, 50);
+  assert.equal(g.combat.projectiles.length, 1);
+  run(g, 0.2);
+  assert.equal(near.hp, 40);
+  run(g, 2.1);
+  assert(!g.combat.enemies.has(near.id));
+  assert(g.combat.enemies.has(other.id));
+  check(g);
+  // Projectile lifetime and stale targets do not damage or duplicate.
+  g = new Game({
+    creative: true,
+    enemySpeed: 0,
+    projectileSpeed: 0.01,
+    projectileLifetime: 0.1,
+  });
+  gun = p(g, "turret", 20, 20);
+  feed(g, gun, "basic_ammo");
+  enemy = g.combat.spawn(24, 21);
+  run(g, 0.3);
+  assert.equal(enemy.hp, 50);
+  assert.equal(g.combat.projectiles.length, 0);
+  check(g);
+  // Spawn defaults OFF; cap, disable retains enemies; reserved area and bounded paths.
+  g = new Game({ creative: true, enemyCap: 2 });
+  assert.equal(g.combat.enabled, false);
+  run(g, 6);
+  assert.equal(g.combat.enemies.size, 0);
+  assert(g.validate("belt", g.spawner.x, 0).includes("spawner"));
+  for (let y = 0; y < 3; y++)
+    for (let x = g.spawner.x; x < g.spawner.x + 3; x++)
+      assert(!g.deposits.has(g.grid.key(x, y)));
+  g.combat.enabled = true;
+  run(g, 16);
+  assert.equal(g.combat.enemies.size, 2);
+  g.combat.enabled = false;
+  run(g, 6);
+  assert.equal(g.combat.enemies.size, 2);
+  const h = g.depot.hp;
+  g.combat.clear();
+  assert.equal(g.depot.hp, h);
+  assert.equal(g.combat.projectiles.length, 0);
+  assert.equal(g.combat.enemies.size, 0);
+  // Navigate around 2x2 footprints, attack obstructing building, destroy logistics cleanly.
+  g = new Game({ creative: true, enemySpeed: 5 });
+  const victim = p(g, "belt", 20, 8);
+  victim.item = { type: "coal", progress: 0 };
+  g.produced++;
+  const wall = p(g, "smelter", 19, 4);
+  g.combat.spawn(18.5, 4.5);
+  run(g, 40);
+  assert(!g.entities.has(wall));
+  assert(!g.grid.get(20, 5));
+  assert(![...g.network.nodes].some((n) => n.entity === wall));
+  assert(!g.entities.has(victim));
+  check(g);
+  // Recalculate when a cached route is obstructed or target removed.
+  g = new Game({ creative: true });
+  const target = p(g, "belt", 30, 10);
+  enemy = g.combat.spawn(25.5, 10.5);
+  run(g, 0.2);
+  assert(enemy.path);
+  const next = enemy.path[enemy.pathIndex];
+  const obstacle = p(g, "belt", Math.floor(next[0]), Math.floor(next[1]));
+  run(g, 10);
+  assert(!g.entities.has(obstacle));
+  g.destroy(target);
+  run(g, 1);
+  assert.notEqual(enemy.target, target);
+  assert(g.combat.pathNodes <= g.config.pathNodesPerTick);
+  // Offscreen/depot damage; no game-over, footprints and graph disappear.
+  g = new Game({ creative: true, enemyDamage: 1000 });
+  g.combat.spawn(g.depot.x - 0.5, g.depot.y + 0.5);
+  run(g, 2);
+  assert(!g.entities.has(g.depot));
+  assert(!g.grid.get(g.depot.x, g.depot.y));
+  g.tick();
+  check(g);
+  // Combat determinism and fixed-clock pause at multiple display frame rates.
+  function schedule(fps) {
+    const g = new Game({ creative: true });
+    const gun = p(g, "turret", 20, 20);
+    feed(g, gun, "basic_ammo", 20);
+    g.combat.spawn(27, 21);
+    const clock = new FixedClock();
+    for (let f = 0; f < fps * 8; f++)
+      clock.advance(1 / fps, (dt) => g.tick(dt));
+    const before = [
+      g.time,
+      g.ammoConsumed,
+      g.combat.enemies.size,
+      g.combat.projectiles.length,
+    ];
+    clock.advance(0.2, (dt) => g.tick(dt), true);
+    assert.deepEqual(
+      [
+        g.time,
+        g.ammoConsumed,
+        g.combat.enemies.size,
+        g.combat.projectiles.length,
+      ],
+      before,
+    );
+    check(g);
+    return before;
+  }
+  assert.deepEqual(schedule(30), schedule(60));
+  assert.deepEqual(schedule(60), schedule(144));
+  console.log(
+    "PASS: FIFO throughput parity, multiple/consecutive tunnels, crossings/buildings/chunks, blocked recovery, endpoint destruction, ammo recipe/backpressure/delivery, turrets capacity/range/nearest/impact/exhaustion/resupply, spawning/cap/reservation/clear, bounded paths, destruction, offscreen combat, fixed-rate determinism and pause.",
+  );
+  // Exact per-ingredient limits leave space for other ingredients.
+  g = new Game({ creative: true });
+  factory = p(g, "ammo_factory", 10, 10);
+  feed(g, factory, "coal");
+  assert(!g.accept(factory, "coal", [9, 10]));
+  feed(g, factory, "iron_plate", 2);
+  run(g, 2);
+  assert.equal(factory.batch.remaining.basic_ammo, 5);
+  assert.equal(factory.input.length, 0);
+  check(g);
+  // All directions carry ammunition; one tick never skips underground latency.
+  for (let d = 0; d < 4; d++) {
+    g = new Game({ creative: true });
+    const [dx, dy] = [
+      [1, 0],
+      [0, 1],
+      [-1, 0],
+      [0, -1],
+    ][d];
+    assert.equal(g.placePair(30, 30, 30 + dx * 6, 30 + dy * 6, d), "");
+    a = g.grid.get(30, 30);
+    assert(g.accept(a, "basic_ammo", [30 - dx, 30 - dy]));
+    g.produced++;
+    g.tick();
+    assert.equal(g.grid.get(30 + dx * 6, 30 + dy * 6).item, null);
+    run(g, 3.3);
+    assert.equal(g.grid.get(30 + dx * 6, 30 + dy * 6).item.type, "basic_ammo");
+    check(g);
+  }
+  // Real UI settings, minimal inspection and pause/offscreen rendering behavior.
+  const u = await require("./ui.cjs").boot(),
+    { exec, elements: e, click, frame } = u;
+  frame(1000);
+  exec(
+    "game.creative=true;game.place('belt',20,20);game.placePair(22,20,28,20);game.place('ammo_factory',30,20);game.place('turret',34,20)",
+  );
+  for (const [x, name] of [
+    [20, "Conveyor"],
+    [22, "Underground Conveyor"],
+    [28, "Underground Conveyor"],
+  ]) {
+    click(x, 20);
+    frame(1200 + x);
+    assert.equal(e["building-name"].textContent, name);
+    assert.equal(e["inspection-body"].hidden, true);
+    assert(e["building-hp"].textContent.includes("HP"));
+  }
+  click(30, 20);
+  assert.equal(e["inspection-body"].hidden, false);
+  assert(
+    e["active-recipe"].innerHTML.includes("assets/mindustry/ore-coal1.png"),
+  );
+  assert(e["active-recipe"].innerHTML.includes("assets/basic_ammo.svg"));
+  click(34, 20);
+  assert(e["building-details"].innerHTML.includes("Ammunition"));
+  assert.equal(e["enemy-toggle"].checked, undefined);
+  e["enemy-toggle"].checked = true;
+  e["enemy-toggle"].onchange();
+  assert.equal(exec("game.combat.enabled"), true);
+  e["enemy-toggle"].checked = false;
+  e["enemy-toggle"].onchange();
+  exec("game.combat.spawn(34,15)");
+  assert.equal(exec("game.combat.enemies.size"), 1);
+  e["locate-spawner"].onclick();
+  assert.equal(exec("cam.y"), 8);
+  e["clear-enemies"].onclick();
+  assert.equal(exec("game.combat.enemies.size"), 0);
+  exec(
+    "game.combat.spawn(34,15);game.accept(game.grid.get(34,20),'basic_ammo',[33,20])",
+  );
+  frame(2000);
+  e.pause.onclick();
+  const snapshot = exec(
+    "JSON.stringify([...game.combat.enemies.values()].map(e=>[e.x,e.y,e.hp,e.attackTimer]))",
+  );
+  frame(2200);
+  frame(2400);
+  assert.equal(
+    exec(
+      "JSON.stringify([...game.combat.enemies.values()].map(e=>[e.x,e.y,e.hp,e.attackTimer]))",
+    ),
+    snapshot,
+  );
+  e.pause.onclick();
+  exec("cam.y=125");
+  frame(2450);
+  assert.notEqual(
+    exec(
+      "JSON.stringify([...game.combat.enemies.values()].map(e=>[e.x,e.y,e.hp,e.attackTimer]))",
+    ),
+    snapshot,
+  );
+  console.log(
+    "PASS: multi-input capacity, ammo in all underground directions, simplified inspection, recipe icons, combat settings/clear/spawner camera, pause and offscreen combat through UI.",
+  );
+  // Existing direct output ports feed both ingredients without special ammo routing.
+  g = new Game({ creative: true });
+  const bender = p(g, "bender", 10, 10);
+  g.deposits.set(g.grid.key(13, 12), "coal");
+  const _coalMiner = p(g, "miner", 13, 12, 3);
+  p(g, "ammo_factory", 12, 10);
+  gun = p(g, "turret", 14, 10);
+  for (let i = 0; i < 4; i++) {
+    feed(g, bender, "iron_ingot");
+    run(g, 3);
+  }
+  assert(gun.ammo >= 5);
+  check(g);
+  // Multiple nearby targets and turrets remain bounded with every enemy active.
+  const { performance } = require("node:perf_hooks");
+  g = new Game({ creative: true, enemyHp: 5000 });
+  for (let y = 8; y < 38; y += 3)
+    for (let x = 50; x < 80; x += 3) {
+      const t = p(g, "turret", x, y);
+      feed(g, t, "basic_ammo", 50);
+    }
+  for (let i = 0; i < 30; i++) g.combat.spawn(50.5 + i, 3.5);
+  let samples = [];
+  for (let i = 0; i < 400; i++) {
+    const start = performance.now();
+    g.tick();
+    samples.push(performance.now() - start);
+    assert(g.combat.pathNodes <= g.config.pathNodesPerTick);
+    check(g);
+  }
+  samples.sort((a, b) => a - b);
+  const combatBenchmark = {
+    turrets: 100,
+    enemies: 30,
+    measuredTicks: 400,
+    meanMs: samples.reduce((a, b) => a + b) / samples.length,
+    p95Ms: samples[Math.floor(samples.length * 0.95)],
+    maxPathNodesPerTick: g.config.pathNodesPerTick,
+  };
+  fs.mkdirSync("test-results", { recursive: true });
+  fs.writeFileSync(
+    "test-results/combat-v08-results.json",
+    JSON.stringify(combatBenchmark, null, 2),
+  );
+  console.log("Combat benchmark (simulation CPU):", combatBenchmark);
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
