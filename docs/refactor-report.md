@@ -83,9 +83,12 @@ persistence, and captures desktop/mobile screenshots.
 
 Local real-browser verification could not run: the browser download was
 truncated, and the separate cloud browser cannot reach the scratch server.
-GitHub browser CI and live Pages deployment results are recorded after the
-branch checks complete. The detailed manual checklist is documented separately;
-its unexecuted entries are not counted as manual passes.
+The branch passed the real Chromium smoke test in
+[GitHub Actions](https://github.com/Lucky69420/MICRO_Factory/actions/runs/38522420488),
+including module/asset loading, construction/costs, inspection, save/load,
+settings persistence and desktop/mobile screenshots. The Pages workflow repeats
+these checks before publishing. The detailed manual checklist is documented
+separately; its unexecuted entries are not counted as manual passes.
 
 ## Remaining technical debt
 
