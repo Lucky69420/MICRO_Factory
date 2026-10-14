@@ -7,7 +7,7 @@ export function recipeMarkup(app, r) {
     Object.entries(r.inputs)
       .map(([t, n]) => `${Art.icon(t)}<b>${n}</b>`)
       .join("<span>+</span>") +
-    `<span>→</span>${Art.icon(r.output)}<b>${r.outputCount}</b>`
+    `<span>→</span>${Art.icon(r.output)}<b>${r.outputCount}</b><span> · ${r.seconds}s</span>`
   );
 }
 export function showInspection(app, force = false) {

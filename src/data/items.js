@@ -1,3 +1,4 @@
+import { AMMUNITION } from "./ammunition.js";
 const RESOURCES = {
   sand: {
     name: "Sand",
@@ -59,12 +60,47 @@ for (const [id, r] of Object.entries(RESOURCES))
     r.icon = `assets/mindustry/ore-${id}1.png`;
     r.oreTextures = [1, 2, 3].map((i) => `assets/mindustry/ore-${id}${i}.png`);
   }
-RESOURCES.basic_ammo = {
-  name: "Basic Ammo",
-  color: "#ecc26c",
-  form: "ammo",
-  group: "Components",
-  icon: "assets/basic_ammo.svg",
-  fallback: "assets/basic_ammo.svg",
+RESOURCES.lead = {
+  name: "Lead ore",
+  color: "#808ca8",
+  form: "ore",
+  group: "Raw materials",
+  icon: "assets/lead.svg",
+  fallback: "assets/lead.svg",
+  oreTextures: ["assets/lead.svg", "assets/lead.svg", "assets/lead.svg"],
 };
+RESOURCES.lead_ingot = {
+  name: "Lead ingot",
+  color: "#9da5b5",
+  form: "ingot",
+  group: "Ingots",
+  icon: "assets/lead_ingot.svg",
+  fallback: "assets/lead_ingot.svg",
+};
+RESOURCES.sulfur = {
+  name: "Sulfur",
+  color: "#e8dc55",
+  form: "ore",
+  group: "Raw materials",
+  icon: "assets/sulfur.svg",
+  fallback: "assets/sulfur.svg",
+  oreTextures: ["assets/sulfur.svg", "assets/sulfur.svg", "assets/sulfur.svg"],
+};
+RESOURCES.gunpowder = {
+  name: "Gunpowder",
+  color: "#696777",
+  form: "raw",
+  group: "Components",
+  icon: "assets/gunpowder.svg",
+  fallback: "assets/gunpowder.svg",
+};
+for (const [id, a] of Object.entries(AMMUNITION))
+  RESOURCES[id] = {
+    name: a.name,
+    color: a.color,
+    form: "ammo",
+    group: "Ammunition",
+    icon: `assets/${id}.svg`,
+    fallback: `assets/${id}.svg`,
+  };
 export { RESOURCES, METALS };

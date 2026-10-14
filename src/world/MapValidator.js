@@ -7,6 +7,12 @@ function startingSources(game) {
     ["coal", game.depot.x - 4, game.depot.y + 6],
     ["copper", game.depot.x + 17, game.depot.y - 14],
     ["tin", game.depot.x - 21, game.depot.y - 22],
+    ...(game.config.contentVersion >= 3
+      ? [
+          ["lead", game.depot.x + 20, game.depot.y + 5],
+          ["sulfur", game.depot.x - 18, game.depot.y + 8],
+        ]
+      : []),
   ].map(([type, x, y]) => ({
     type,
     x: clamp(x, g.width),
@@ -87,6 +93,14 @@ function terrainValidation(game) {
     problems.push("sand");
   for (const p of startingSources(game))
     if (!wide[grid.key(p.x, p.y)]) problems.push(p.type);
+  for (const p of startingSources(game))
+    if (
+      game.deposits.size &&
+      ![...game.deposits].some(
+        ([key, type]) => type === p.type && reachable[key],
+      )
+    )
+      problems.push("missing " + p.type);
   for (const [key] of game.deposits)
     if (
       !reachable[key] ||

@@ -1,3 +1,4 @@
+import { advanceProjectiles, fireTurrets } from "./Weapons.js";
 const D = [
   [0, 1],
   [1, 0],
@@ -63,7 +64,7 @@ class Combat {
       bucket.push(e);
     }
   }
-  nearest(x, y, range) {
+  nearest(x, y, range, minRange = 0) {
     const s = this.game.config.chunkSize;
     let best = null,
       distance = range * range;
@@ -80,7 +81,10 @@ class Combat {
         for (const e of this.spatial.get(cx + "," + cy) || []) {
           if (e.hp <= 0) continue;
           const d = (e.x - x) ** 2 + (e.y - y) ** 2;
-          if (d < distance || (d === distance && (!best || e.id < best.id))) {
+          if (
+            d >= minRange * minRange &&
+            (d < distance || (d === distance && (!best || e.id < best.id)))
+          ) {
             distance = d;
             best = e;
           }
@@ -262,52 +266,8 @@ class Combat {
       }
     }
     this.index();
-    // Advance existing projectiles before firing; a new shot cannot hit in its birth tick.
-    for (let i = this.projectiles.length - 1; i >= 0; i--) {
-      const p = this.projectiles[i],
-        target = this.enemies.get(p.target);
-      p.previousX = p.x;
-      p.previousY = p.y;
-      p.life -= dt;
-      if (!target || p.life <= 0) {
-        this.projectiles.splice(i, 1);
-        continue;
-      }
-      const dx = target.x - p.x,
-        dy = target.y - p.y,
-        d = Math.hypot(dx, dy),
-        step = c.projectileSpeed * dt;
-      if (d <= step + 0.15) {
-        this.hit(target, p.damage);
-        this.projectiles.splice(i, 1);
-      } else {
-        p.x += (dx / d) * step;
-        p.y += (dy / d) * step;
-      }
-    }
-    for (const b of g.turrets) {
-      b.flash = Math.max(0, b.flash - dt);
-      b.cooldown = Math.max(0, b.cooldown - dt);
-      const x = b.x + b.size / 2,
-        y = b.y + b.size / 2,
-        e = this.nearest(x, y, c.turretRange);
-      b.target = e;
-      if (e) b.angle = Math.atan2(e.y - y, e.x - x);
-      if (!e || !b.ammo || b.cooldown > 1e-9) continue;
-      b.ammo--;
-      g.ammoConsumed++;
-      b.cooldown = 1 / c.fireRate;
-      b.flash = 0.12;
-      this.projectiles.push({
-        x,
-        y,
-        previousX: x,
-        previousY: y,
-        target: e.id,
-        damage: c.shotDamage,
-        life: c.projectileLifetime,
-      });
-    }
+    advanceProjectiles(this, dt);
+    fireTurrets(this, dt);
     for (let i = this.effects.length - 1; i >= 0; i--) {
       this.effects[i].time -= dt;
       if (this.effects[i].time <= 0) this.effects.splice(i, 1);

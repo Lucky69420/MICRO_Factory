@@ -239,12 +239,12 @@
   // Partial inputs are returned on recipe changes; active jobs finish their old recipe.
   g = fresh();
   let b = p(g, "ammo_factory", 20, 20);
-  put(g, b, "iron_plate");
-  const stock = g.stock.iron_plate;
-  g.setRecipe(b, "basic_ammo");
-  assert.equal(g.stock.iron_plate, stock);
+  put(g, b, "iron_ingot");
+  const stock = g.stock.iron_ingot;
+  g.setRecipe(b, "primitive_ammo");
+  assert.equal(g.stock.iron_ingot, stock);
   g.reclaimInputs(b);
-  assert.equal(g.stock.iron_plate, stock + 1);
+  assert.equal(g.stock.iron_ingot, stock + 1);
   conserved(g);
   g = fresh();
   b = p(g, "bender", 20, 20);
@@ -265,7 +265,7 @@
   // Save/load a processing multi-input job and tunnel pipeline, then compare outcomes.
   g = fresh();
   b = p(g, "ammo_factory", 20, 20);
-  for (const [t, n] of Object.entries(RECIPES.basic_ammo.inputs))
+  for (const [t, n] of Object.entries(RECIPES.primitive_ammo.inputs))
     for (let i = 0; i < n; i++) put(g, b, t);
   run(g, 15);
   assert.equal(g.placePair(30, 30, 34, 30), "");
@@ -283,11 +283,11 @@
   const saved = legacy.buildings.find((b) => b.type === "ammo_factory");
   saved.batch = null;
   saved.input = Array(32).fill("iron_plate");
-  saved.output = Array(20).fill("basic_ammo");
+  saved.output = Array(20).fill("primitive_ammo");
   legacy.counters.produced += 52 - sum(g.grid.get(20, 20).batch.remaining);
   h = Game.fromSave(legacy);
   assert.equal(h.stock.iron_plate, g.stock.iron_plate + 32);
-  assert.equal(h.stock.basic_ammo, g.stock.basic_ammo + 20);
+  assert.equal(h.stock.primitive_ammo, g.stock.primitive_ammo + 20);
   assert.equal(h.grid.get(20, 20).input.length, 0);
   conserved(h);
   // Demolition accounts for committed ingredients and remaining outputs exactly once.

@@ -1,4 +1,6 @@
-import { RESOURCES, RECIPES } from "../data/index.js";
+import { RESOURCES, RECIPES, TURRETS } from "../data/index.js";
+
+import { boxRounds } from "../combat/Ammunition.js";
 
 export function side(game, b, from) {
   const dx = from[0] - b.x,
@@ -22,14 +24,17 @@ export function canAccept(game, b, type, from, source, _item) {
     }
     return true;
   }
-  if (b.type === "turret")
-    return type === "basic_ammo" && b.ammo < game.config.ammoCapacity;
+  if (TURRETS[b.type]) {
+    const spec = TURRETS[b.type],
+      rounds = boxRounds(type, _item);
+    return type === spec.ammo && rounds > 0 && b.ammo + rounds <= spec.capacity;
+  }
   if (b.isProcessor || b.type === "smelter") {
     if (b.batch) return false;
     const r =
       b.type === "smelter" &&
       !b.ore.length &&
-      ["iron", "copper", "tin"].includes(type)
+      ["iron", "copper", "tin", "lead"].includes(type)
         ? RECIPES["smelter_" + type]
         : game.machineRecipe(b);
     if (!r || !Object.hasOwn(r.inputs, type)) return false;
@@ -73,9 +78,12 @@ export function accept(game, b, type, from, source, item) {
     }
     if (b.type === "junction") b.channels[game.lane(side)] = next;
     else b.item = next;
-  } else if (b.type === "turret") b.ammo++;
+  } else if (TURRETS[b.type]) b.ammo += boxRounds(type, item);
   else if (b.isProcessor) b.input.push(type);
-  else if (b.type === "depot") b.queue.push(type);
+  else if (b.type === "depot")
+    b.queue.push(
+      item?.rounds !== undefined ? { type, rounds: item.rounds } : type,
+    );
   else if (type === "coal") b.coal++;
   else b.ore.push(type);
   return true;
@@ -156,7 +164,12 @@ export function resolveTransfer(game, node, type, item, epoch) {
         state = edge.node.id * 4 + side;
       if (explored.has(state)) continue;
       explored.add(state);
-      const incoming = { type, entrySide: side, direction: (side + 2) % 4 };
+      const incoming = {
+        ...frame.item,
+        type,
+        entrySide: side,
+        direction: (side + 2) % 4,
+      };
       visited.add(edge.node.id);
       stack.push({
         node: edge.node,

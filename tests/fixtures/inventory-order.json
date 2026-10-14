@@ -4,10 +4,13 @@
   "iron",
   "copper",
   "tin",
+  "lead",
+  "sulfur",
   "iron_ingot",
   "copper_ingot",
   "tin_ingot",
-  "basic_ammo",
+  "lead_ingot",
+  "gunpowder",
   "iron_plate",
   "iron_foil",
   "iron_wire",
@@ -22,5 +25,9 @@
   "tin_foil",
   "tin_wire",
   "tin_rod",
-  "tin_screw"
+  "tin_screw",
+  "primitive_ammo",
+  "ammo_556",
+  "ammo_762",
+  "artillery_shell"
 ]

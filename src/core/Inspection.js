@@ -1,4 +1,10 @@
-import { BUILDINGS, RESOURCES, TRANSPORT } from "../data/index.js";
+import {
+  BUILDINGS,
+  RESOURCES,
+  TRANSPORT,
+  TURRETS,
+  AMMUNITION,
+} from "../data/index.js";
 import { DIRS } from "../utils/directions.js";
 import { counts } from "../utils/items.js";
 
@@ -143,16 +149,26 @@ export function inspect(game, b) {
     }
   }
 
-  if (b.type === "turret") {
+  if (TURRETS[b.type]) {
+    const spec = TURRETS[b.type],
+      a = AMMUNITION[spec.ammo];
     info.direction = null;
-    info.input = { basic_ammo: b.ammo };
+    info.input = {};
     info.status = !b.ammo ? "Out of Ammo" : b.target ? "Firing" : "Idle";
     info.details = {
-      Ammunition: `${b.ammo} / ${c.ammoCapacity}`,
+      "Accepted ammunition": a.name,
+      "Rounds per box": a.rounds,
+      "Remaining shots": `${b.ammo} / ${spec.capacity}`,
       Target: b.target ? `Enemy ${b.target.id}` : "None",
-      Range: `${c.turretRange} tiles`,
-      Damage: c.shotDamage,
-      "Fire rate": `${c.fireRate} shots / second`,
+      Range: `${spec.range} tiles`,
+      Damage: spec.damage,
+      "Fire rate": `${spec.fireRate} shots / second`,
+      ...(spec.minRange
+        ? {
+            "Minimum range": `${spec.minRange} tiles`,
+            "Blast radius": `${spec.splashRadius} tiles`,
+          }
+        : {}),
     };
   }
   if (["belt", "underground", "wall"].includes(b.type)) info.minimal = true;

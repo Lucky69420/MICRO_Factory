@@ -54,7 +54,7 @@ for (let y = 125; y < 150; y++)
 for (const type of Object.keys(SPECS).filter(
   (t) => !["depot", "underground"].includes(t),
 )) {
-  g = new Game();
+  g = new Game({ creative: true });
   if (type === "miner") g.deposits.set(g.grid.key(20, 20), "iron");
   place(g, type, 20, 20);
   tunnel(g, 19, 20, 20 + SPECS[type].size, 20, 0);
@@ -114,7 +114,7 @@ for (const recipe of Object.values(RECIPES).filter(
   run(g, 1);
   assert.equal(b.output, undefined);
   assert.equal(g.inspect(b).status, "Processing");
-  run(g, 1.1);
+  run(g, recipe.seconds - 0.9);
   assert.deepEqual(b.batch.remaining, recipe.outputs);
   assert.equal(b.input.length, 0);
   conserved(g);
@@ -186,7 +186,7 @@ g.damage(b, 150);
 assert.equal(g.discarded, 1);
 conserved(g);
 for (const r of Object.values(RESOURCES)) assert(r.icon && r.form && r.group);
-assert.equal(Object.keys(RECIPES).length, 19);
+assert.equal(Object.keys(RECIPES).length, 24);
 console.log(
   "PASS: depot/road layout, tunnels under every surface type/road/depot, overlapping links, surface construction above tunnels, 16 processor recipes, safe switching/reclaim, capacities, machine chains, component delivery, costs, HP, conservation.",
 );

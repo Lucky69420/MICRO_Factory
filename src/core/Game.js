@@ -1,3 +1,4 @@
+import { storeItem } from "../combat/Ammunition.js";
 import { CONFIG } from "./Config.js";
 import { COSTS, RESOURCES, START_INVENTORY } from "../data/index.js";
 
@@ -48,7 +49,8 @@ import { inspect } from "../core/Inspection.js";
 /** Owns mutable simulation state. Public commands delegate to focused systems. */
 export class Game {
   constructor(config = {}) {
-    this.config = { ...CONFIG, ...config };
+    this.config = { ...CONFIG, contentVersion: 3, ...config };
+    this.ammoRemainders = {};
     this.creative = Boolean(config.creative);
     this.seed = String(config.seed ?? "micro-factory");
     this.grid = new Grid(this.config);
@@ -256,7 +258,7 @@ export class Game {
     } else if (t.state === "outbound") {
       t.y += c.truckSpeed * dt;
       if (t.y > c.height + 1) {
-        for (const r of t.cargo) this.stock[r]++;
+        for (const r of t.cargo) storeItem(this, r);
         this.delivered += t.cargo.length;
         t.cargo = [];
         t.state = "waiting";

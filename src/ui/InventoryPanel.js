@@ -10,7 +10,14 @@ export function initializeInventory(app) {
     "sand",
     ...metals,
     ...metals.map((metal) => metal + "_ingot"),
-    "basic_ammo",
+    "lead",
+    "sulfur",
+    "lead_ingot",
+    "gunpowder",
+    "primitive_ammo",
+    "ammo_556",
+    "ammo_762",
+    "artillery_shell",
     ...metals.flatMap((metal) =>
       ["plate", "foil", "wire", "rod", "screw"].map(
         (form) => metal + "_" + form,
@@ -54,6 +61,12 @@ export function itemList(app, items) {
     : '<p class="muted">Empty</p>';
 }
 export function updateInventory(app) {
-  for (const [r, n] of Object.entries(app.game.stock))
-    app.$("stock-" + r).textContent = n;
+  for (const [r, n] of Object.entries(app.game.stock)) {
+    app.$("stock-" + r).textContent = app.game.ammoRemainders[r]
+      ? `${n} + ${app.game.ammoRemainders[r]}r`
+      : n;
+    app.$("stock-" + r).title = app.game.ammoRemainders[r]
+      ? `${app.game.ammoRemainders[r]} rounds in a recovered partial box`
+      : "";
+  }
 }

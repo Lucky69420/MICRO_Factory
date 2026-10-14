@@ -121,27 +121,49 @@ export function render(app, _now) {
         pt[0] + 0.5 - d[0] * 0.7,
         pt[1] + 0.5 - d[1] * 0.7,
       );
-      if (!["depot", "turret", "wall"].includes(c.type))
+      if (!["depot", "wall"].includes(c.type) && !Factory.TURRETS[c.type])
         app.arrow(ax, ay, c.dir, s, "#dce8ed");
     }
-    if (c.type === "turret") {
+    if (Factory.TURRETS[c.type]) {
+      const weapon = Factory.TURRETS[c.type],
+        barrel = weapon.barrel;
       app.ctx.save();
       app.ctx.translate(x + z / 2, y + z / 2);
       app.ctx.rotate(c.angle);
       app.ctx.fillStyle = "#394b58";
-      app.ctx.fillRect(-s * 0.18, -s * 0.14, s * 0.95, s * 0.28);
+      app.ctx.fillRect(-s * 0.18, -s * 0.14, s * (barrel + 0.18), s * 0.28);
       app.ctx.fillStyle = "#b6c6cd";
-      app.ctx.fillRect(s * 0.2, -s * 0.08, s * 0.55, s * 0.16);
+      app.ctx.fillRect(s * 0.2, -s * 0.08, s * (barrel - 0.2), s * 0.16);
       if (c.flash) {
-        app.ctx.fillStyle = "#ffe794";
-        app.ctx.fillRect(s * 0.76, -s * 0.12, s * 0.24, s * 0.24);
+        app.ctx.fillStyle = weapon.color;
+        app.ctx.fillRect(s * barrel, -s * 0.12, s * 0.24, s * 0.24);
       }
       app.ctx.restore();
+      if (!c.ammo) {
+        app.ctx.fillStyle = "#ec827c";
+        app.ctx.fillRect(
+          x + z * 0.12,
+          y + z * 0.78,
+          z * 0.2,
+          Math.max(2, s * 0.08),
+        );
+      }
       if (c === app.selected) {
         app.ctx.strokeStyle = "#dfbb6355";
         app.ctx.beginPath();
-        app.ctx.arc(x + z / 2, y + z / 2, cfg.turretRange * s, 0, Math.PI * 2);
+        app.ctx.arc(x + z / 2, y + z / 2, weapon.range * s, 0, Math.PI * 2);
         app.ctx.stroke();
+        if (weapon.minRange) {
+          app.ctx.beginPath();
+          app.ctx.arc(
+            x + z / 2,
+            y + z / 2,
+            weapon.minRange * s,
+            0,
+            Math.PI * 2,
+          );
+          app.ctx.stroke();
+        }
       }
     }
     if (c === app.selected || c.hp < c.maxHp) {

@@ -5,6 +5,8 @@ const DEPOSIT_CONFIG = {
   coal: { min: 8, max: 20, weight: 4 },
   copper: { min: 6, max: 20, weight: 2 },
   tin: { min: 5, max: 15, weight: 2 },
+  lead: { min: 8, max: 22, weight: 3 },
+  sulfur: { min: 8, max: 20, weight: 3 },
   spacing: 9,
   patchesPer10000: 26,
 };
@@ -57,7 +59,9 @@ function generateDeposits(game, settings = {}) {
   // Guaranteed seeds are near the start, with copper/tin farther out and open building space.
   for (const p of startingSources(game)) patch(p.type, p.x, p.y);
   const weighted = [];
-  for (const type of ["iron", "coal", "copper", "tin"])
+  for (const type of game.config.contentVersion >= 3
+    ? ["iron", "coal", "copper", "tin", "lead", "sulfur"]
+    : ["iron", "coal", "copper", "tin"])
     for (let i = 0; i < cfg[type].weight; i++) weighted.push(type);
   const count = Math.round(
     ((grid.width * grid.height) / 10000) * cfg.patchesPer10000,
@@ -71,7 +75,14 @@ function generateDeposits(game, settings = {}) {
       !allowed(x, y)
     )
       continue;
-    patch(weighted[rng.integer(0, weighted.length - 1)], x, y);
+    const type = weighted[rng.integer(0, weighted.length - 1)];
+    if (
+      type === "sulfur" &&
+      !["stone", "gravel", "rock"].includes(grid.terrainAt(x, y)) &&
+      tries < count * 15
+    )
+      continue;
+    patch(type, x, y);
     i++;
   }
 }

@@ -1,0 +1,56 @@
+[
+  {
+    "seed": "micro-factory",
+    "width": 64,
+    "terrain": "b00c549087d9b844160cd376fed0ea6a3e6130712708a4341a45ce11d2b40a0d",
+    "variants": "17cb3f6ef248fc4b92814b2c7e1694d203faebd947066522e2156bb5cebcfabf"
+  },
+  {
+    "seed": "micro-factory",
+    "width": 150,
+    "terrain": "3ebfbfcdda81d8c1b68eac215b33b26d7819086bb31442b75be39c85b5b21272",
+    "variants": "18052beafba00076c38ad92b29bde8e4fe20da7696e1667c81c4f95e7b0ca480"
+  },
+  {
+    "seed": "micro-factory",
+    "width": 256,
+    "terrain": "e74bdeaa8c21a0d2db42f57c45ca5141de55f8ed812b4d08613ea6e0432412d9",
+    "variants": "0a7ccda9af4fb887c35f32e930fe143ea74204c90861a3c12beb04415b048963"
+  },
+  {
+    "seed": "regression-world",
+    "width": 64,
+    "terrain": "fabdb84ada690201f2ba690014ec50676f14a63ef909607c4d73749676638462",
+    "variants": "d56a7018a635d0a1a4f11567ca6d1af2d28fb8e2ae5dba11bd85973fa419d7de"
+  },
+  {
+    "seed": "regression-world",
+    "width": 150,
+    "terrain": "1b3e7cc544ef8491fd1d4630ca9f0341b6758ef904af51b88cce49d6818a8dc1",
+    "variants": "2bf2102014a620b83cfe897d33c0de88faa45224aa3b29fedceb56417dc7599b"
+  },
+  {
+    "seed": "regression-world",
+    "width": 256,
+    "terrain": "341631fafc40aa66a1804fc4d061cd8679e008c8f1bb11ada7cb448c49ced5b7",
+    "variants": "e32865c1c7c89c63a1a160809b547a722b74d86ba75a56f0d808089cbb5c8249"
+  },
+  {
+    "seed": "123456",
+    "width": 64,
+    "terrain": "1ce9a655314dd2c8f3b36d04b8bbb69322df052e78d1c40d06690f9be94e4144",
+    "variants": "199053d45a7c7656d96c98192405a80c4db4496305c156810cc6cb7737e61287"
+  },
+  {
+    "seed": "123456",
+    "width": 150,
+    "terrain": "7ae7084817aee6f0753dde7aa02ccbde453ede4c53a46d4a0b356fc41fb8cb6f",
+    "variants": "9d232d9aef9ec38ef63cedef1b9e67f174af7990b714da10d3fb96ea3ed035cf"
+  },
+  {
+    "seed": "123456",
+    "width": 256,
+    "terrain": "5f980a42cd025a2cfdb3906b50b98bb9a44f1b09afd5ad6f179d58bfc135197e",
+    "variants": "fa2f3f8a9c57ec12393c5ba6f1d58dd570576dadd1b65c61edab24b3ab278e18"
+  }
+]

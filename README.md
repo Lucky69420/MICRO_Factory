@@ -3,6 +3,10 @@
 A browser factory game with mining, production, conveyors, underground transport,
 a depot/truck economy, procedural terrain, and optional enemy combat.
 
+Version 0.11 adds lead, sulfur, a gunpowder Mixer, ammunition boxes and four
+specialized turrets including long-range artillery. See the [content update](docs/ammunition-update.md)
+for recipes, balancing, migration and verification.
+
 **[Play Micro Factory](https://Lucky69420.github.io/MICRO_Factory/)**
 
 ## Run locally
@@ -157,12 +161,13 @@ Existing browser keybindings continue to override defaults until reset.
 
 ## Saves, validation and remaining work
 
-Factory save versions 1 and 2 and all `microfactory.*` browser storage keys are
+Factory save versions 1, 2 and 3 and all `microfactory.*` browser storage keys are
 preserved. Saves rebuild graphs/caches and retain active jobs, items, tunnels,
 truck state, stock, terrain seed and combat. Failed loads leave the running
 factory intact. Saves remain tied to the browser and origin.
 
-See [the verification report](docs/refactor-report.md) for measured results,
+See [the content update](docs/ammunition-update.md) for current behavior and
+[the historical refactor report](docs/refactor-report.md) for earlier measurements,
 [the manual regression checklist](docs/manual-testing.md), and
 [historical gameplay notes](docs/history.md).
 

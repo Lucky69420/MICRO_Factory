@@ -1,4 +1,4 @@
-import { SPECS, TRANSPORT } from "../data/index.js";
+import { SPECS, TRANSPORT, TURRETS, AMMUNITION } from "../data/index.js";
 
 export function add(game, type, x, y, dir) {
   const spec = SPECS[type],
@@ -36,7 +36,7 @@ export function add(game, type, x, y, dir) {
   for (let yy = y; yy < y + b.size; yy++)
     for (let xx = x; xx < x + b.size; xx++) game.grid.set(xx, yy, b);
   if (type === "miner") game.miners.add(b);
-  if (type === "turret") game.turrets.add(b);
+  if (TURRETS[type]) game.turrets.add(b);
   if (type === "smelter" || b.isProcessor) game.machines.add(b);
   game.network.add(b);
   if (type === "belt") game.beltCount++;
@@ -61,7 +61,7 @@ export function contents(game, b) {
           ).reduce((a, n) => a + n, 0) - (b.batch.fuelCount || 0)
       : 0) +
     (b.queue ? b.queue.length : 0) +
-    (b.ammo || 0) +
+    (TURRETS[b.type] ? b.ammo / AMMUNITION[TURRETS[b.type].ammo].rounds : 0) +
     (b.mode === "entrance" && b.connection ? b.connection.pipeline.length : 0)
   );
 }

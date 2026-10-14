@@ -7,13 +7,13 @@ export const categories = {
   production: {
     name: "Production",
     key: "e",
-    tools: ["smelter", "bender", "wiremill", "lathe"],
+    tools: ["smelter", "bender", "wiremill", "lathe", "mixer", "ammo_factory"],
   },
   mining: { name: "Mining", key: "f", tools: ["miner"] },
   defense: {
     name: "Defense",
     key: "t",
-    tools: ["wall", "turret", "ammo_factory"],
+    tools: ["wall", "turret", "light_turret", "heavy_turret", "artillery"],
   },
   infrastructure: { name: "Tools", key: "g", tools: ["demolish"] },
 };

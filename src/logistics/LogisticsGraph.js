@@ -1,3 +1,4 @@
+import { TURRETS } from "../data/turrets.js";
 const D = [
   [1, 0],
   [0, 1],
@@ -55,7 +56,7 @@ class LogisticsGraph {
       b.outputNode = this.node(b, "output");
       b.inputNode = this.node(b, "input");
       b.graphNodes.push(b.outputNode, b.inputNode);
-    } else if (b.type === "depot" || b.type === "turret") {
+    } else if (b.type === "depot" || TURRETS[b.type]) {
       b.inputNode = this.node(b, "input");
       b.graphNodes.push(b.inputNode);
     }
@@ -131,7 +132,7 @@ class LogisticsGraph {
       b.isProcessor ||
       b.type === "smelter" ||
       b.type === "depot" ||
-      b.type === "turret"
+      TURRETS[b.type]
     );
   }
   updateBelt(b) {

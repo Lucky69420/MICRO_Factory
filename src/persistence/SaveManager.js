@@ -1,3 +1,5 @@
+import { migrateSave } from "./SaveMigration.js";
+import { ensureContentDeposits } from "../world/ContentDeposits.js";
 import * as F from "../data/index.js";
 import { RECIPES } from "../data/recipes.js";
 const fields = [
@@ -41,7 +43,8 @@ export function saveGame(game) {
   const combat = game.combat;
   return JSON.parse(
     JSON.stringify({
-      version: 2,
+      version: 3,
+      ammoRemainders: game.ammoRemainders,
       config: { ...game.config, seed: game.seed, creative: game.creative },
       seed: game.seed,
       creative: game.creative,
@@ -78,9 +81,13 @@ export function saveGame(game) {
   );
 }
 export function loadGame(data, Game) {
-  if (!data || ![1, 2].includes(data.version) || !Array.isArray(data.buildings))
+  if (
+    !data ||
+    ![1, 2, 3].includes(data.version) ||
+    !Array.isArray(data.buildings)
+  )
     throw new Error("Unsupported factory save.");
-  const snapshot = JSON.parse(JSON.stringify(data)),
+  const snapshot = migrateSave(JSON.parse(JSON.stringify(data))),
     g = new Game({
       ...snapshot.config,
       seed: snapshot.seed,
@@ -89,6 +96,7 @@ export function loadGame(data, Game) {
   // Construct into a fresh game so malformed saves cannot damage the running world.
   for (const b of [...g.entities]) g.destroy(b);
   Object.assign(g.stock, snapshot.stock);
+  g.ammoRemainders = snapshot.ammoRemainders || {};
   for (const k of counters) g[k] = snapshot.counters?.[k] || 0;
   g.tickCount = snapshot.counters?.tickCount || 0;
   for (const [k] of g.deposits) g.deposits.delete(k);
@@ -203,6 +211,7 @@ export function loadGame(data, Game) {
     }
     g.combat.index();
   }
+  if (data.version < 3) ensureContentDeposits(g);
   g.freezeInterpolation();
   return g;
 }

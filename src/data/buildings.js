@@ -1,16 +1,31 @@
+import { TURRETS } from "./turrets.js";
 import { CONFIG } from "../core/Config.js";
 import { RECIPES } from "./recipes.js";
-const PROCESSORS = new Set(["bender", "wiremill", "lathe", "ammo_factory"]);
+const PROCESSORS = new Set([
+  "bender",
+  "wiremill",
+  "lathe",
+  "ammo_factory",
+  "mixer",
+]);
 const MACHINE_NAMES = {
   wiremill: "Wire Mill",
   bender: "Bender",
   lathe: "Lathe",
-  ammo_factory: "Ammunition Factory",
+  ammo_factory: "Assembler",
+  mixer: "Mixer",
+  light_turret: "Light Machine Gun Turret",
+  heavy_turret: "Heavy Machine Gun Turret",
+  artillery: "Artillery Turret",
   turret: "Basic Turret",
   belt: "Conveyor",
   underground: "Underground Conveyor",
 };
 const COSTS = {
+  mixer: { iron_plate: 12, copper_ingot: 5 },
+  light_turret: { iron_plate: 25, copper_plate: 15, lead_ingot: 5 },
+  heavy_turret: { iron_plate: 40, copper_plate: 20, lead_ingot: 10 },
+  artillery: { iron_plate: 100, copper_plate: 40, lead_ingot: 30 },
   wall: { iron_ingot: 5 },
   ammo_factory: { iron_plate: 15, copper_plate: 5 },
   turret: { iron_plate: 20, copper_plate: 10 },
@@ -26,6 +41,10 @@ const COSTS = {
   lathe: { iron_plate: 15, copper_wire: 5 },
 };
 const SPECS = {
+  mixer: { size: 2, hp: 150 },
+  light_turret: { size: 2, hp: 180 },
+  heavy_turret: { size: 2, hp: 280 },
+  artillery: { size: 3, hp: 400 },
   wall: { size: 1, hp: 200 },
   ammo_factory: { size: 2, hp: 150 },
   turret: { size: 2, hp: 200 },
@@ -55,21 +74,20 @@ for (const [id, d] of Object.entries(BUILDINGS))
     name: MACHINE_NAMES[id] || id[0].toUpperCase() + id.slice(1),
     maxHp: d.hp,
     cost: COSTS[id] || {},
-    inputCapacity:
-      id === "turret"
-        ? CONFIG.ammoCapacity
-        : id === "depot"
-          ? CONFIG.depotCapacity
-          : 1,
+    inputCapacity: TURRETS[id]
+      ? TURRETS[id].capacity
+      : id === "depot"
+        ? CONFIG.depotCapacity
+        : 1,
     outputCapacity:
-      id === "turret" || id === "smelter" || PROCESSORS.has(id) ? 0 : 1,
+      TURRETS[id] || id === "smelter" || PROCESSORS.has(id) ? 0 : 1,
     supportedRecipes: Object.values(RECIPES)
       .filter((r) => r.machine === id)
       .map((r) => r.id),
     processingSpeed: 1,
     behavior:
       d.behavior ||
-      (id === "turret"
+      (TURRETS[id]
         ? "combat"
         : PROCESSORS.has(id)
           ? "recipe"
@@ -81,14 +99,13 @@ for (const [id, d] of Object.entries(BUILDINGS))
                 ? "transport"
                 : "storage"),
     inputBehavior: id === "miner" ? "none" : "compatible perimeter",
-    outputBehavior:
-      id === "turret"
-        ? "none"
-        : id === "junction"
-          ? "straight channels"
-          : id === "router"
-            ? "round robin"
-            : "directional port",
+    outputBehavior: TURRETS[id]
+      ? "none"
+      : id === "junction"
+        ? "straight channels"
+        : id === "router"
+          ? "round robin"
+          : "directional port",
     sprite: "assets/building-" + id + ".svg",
   });
 PROCESSORS.clear();
@@ -113,7 +130,7 @@ for (const [id, b] of Object.entries(BUILDINGS))
       ? "logistics"
       : id === "miner"
         ? "mining"
-        : ["wall", "turret", "ammo_factory"].includes(id)
+        : id === "wall" || TURRETS[id]
           ? "defense"
           : id === "depot"
             ? "infrastructure"

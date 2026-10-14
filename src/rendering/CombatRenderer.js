@@ -38,21 +38,42 @@ export function drawCombat(app, xmin, ymin, xmax, ymax) {
   }
   for (const p of app.game.combat.projectiles) {
     if (!visible(p.x, p.y)) continue;
-    const [x, y] = app.screen(
+    const [x, baseY] = app.screen(
       p.previousX + (p.x - p.previousX) * app.interpolation,
       p.previousY + (p.y - p.previousY) * app.interpolation,
     );
-    app.ctx.fillStyle = "#ffdf87";
+    const arc = p.artillery
+        ? Math.sin((Math.PI * p.elapsed) / p.duration) * s * 2
+        : 0,
+      y = baseY - arc;
+    if (p.artillery) {
+      app.ctx.fillStyle = "#00000055";
+      app.ctx.fillRect(x - 3, baseY - 2, 6, 4);
+    }
+    app.ctx.fillStyle = p.color || "#ffdf87";
     app.ctx.beginPath();
-    app.ctx.arc(x, y, Math.max(2, s * 0.065), 0, Math.PI * 2);
+    app.ctx.arc(
+      x,
+      y,
+      Math.max(2, s * (p.artillery ? 0.18 : 0.065)),
+      0,
+      Math.PI * 2,
+    );
     app.ctx.fill();
   }
   for (const e of app.game.combat.effects) {
-    if (!visible(e.x, e.y)) continue;
+    if (!visible(e.x, e.y, e.radius || 1)) continue;
     const [x, y] = app.screen(e.x, e.y);
     app.ctx.strokeStyle = e.color;
     app.ctx.beginPath();
-    app.ctx.arc(x, y, s * (0.4 - e.time * 0.5), 0, Math.PI * 2);
+    app.ctx.arc(
+      x,
+      y,
+      s *
+        (e.radius ? e.radius * (1 - e.time / e.duration) : 0.4 - e.time * 0.5),
+      0,
+      Math.PI * 2,
+    );
     app.ctx.stroke();
   }
 }

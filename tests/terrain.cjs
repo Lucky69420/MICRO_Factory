@@ -125,7 +125,7 @@
     "Network change invalidates the cached path",
   );
   // Deliberately sever the northern entrance; validator rejects it and broad carving repairs it.
-  g = new Game({ seed: "repair" });
+  g = new Game({ seed: "repair", contentVersion: 2 });
   for (let y = 4; y < 12; y++)
     for (let x = 0; x < 150; x++) {
       g.grid.terrain[g.grid.key(x, y)] = 5;
