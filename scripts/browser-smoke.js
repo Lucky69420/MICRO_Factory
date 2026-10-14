@@ -60,6 +60,10 @@ try {
     "200 / 200 HP",
   );
   await page.locator("#inventory-button").click();
+  // Inventory is intentionally refreshed on the existing 150ms UI cadence.
+  await page.waitForFunction(
+    () => document.getElementById("stock-iron_ingot").textContent === "95",
+  );
   assert.equal(await page.locator("#stock-iron_ingot").textContent(), "95");
   await page.locator("#inventory-button").click();
   await page.locator("#settings-button").click();
